@@ -68,7 +68,7 @@ Print: `Fetched N tickets (X from CORE, Y from ENG)`
 
 For each ticket, call `list_comments` with `issueId` set to the ticket identifier.
 
-Scan the comments for any comment body containing the marker `<!-- triage-cs-requests`. Note: the marker may include a version suffix like `<!-- triage-cs-requests v2 | 2026-05-29 -->` — match on the prefix `<!-- triage-cs-requests` to catch any version.
+Scan the comments for any comment body containing the marker `<!-- triage-cs-requests`. Note: the marker may include a version suffix like `<!-- triage-cs-requests v3 | 2026-05-29 -->` — match on the prefix `<!-- triage-cs-requests` to catch any version.
 
 If the marker is found, this ticket has already been processed — **skip it**.
 
@@ -100,41 +100,11 @@ If zero tickets remain, print `All tickets already triaged — nothing to do.` a
 
 ---
 
-## Step 3 — Build context (code surface map + cross-team pool + projects)
+## Step 3 — Build context (cross-team pool + projects)
 
-**Run 3a, 3b, and 3c in parallel** — they are independent.
+**Run 3a and 3b in parallel** — they are independent.
 
-### 3a. Fetch latest code and build dynamic surface map
-
-Run in the local cubby repo at `/Users/hzahariev/Documents/cubby work docs/cubby/`:
-
-```bash
-git fetch origin master
-```
-
-Then list the frontend page directories and backend controllers:
-
-```bash
-ls /Users/hzahariev/Documents/cubby\ work\ docs/cubby/web/apps/manager/src/pages/
-ls /Users/hzahariev/Documents/cubby\ work\ docs/cubby/api/server/src/main/java/com/cubbystorage/api/controller/
-```
-
-Build the surface map **dynamically** from the directory listings. For each frontend page directory, infer the surface name from the directory name (e.g., `PaymentsPage/` → Payments, `RentalsPage/` → Rentals). For each backend controller, infer the surface from the controller name (e.g., `LeasesApiController.java` → Leases).
-
-Use the following **alias table** only for non-obvious mappings where the directory/controller name doesn't match the surface name:
-
-| Surface name | Maps to |
-|-------------|---------|
-| Rentals | `RentalsPage/`, `LeasesApiController.java` |
-| Units / Spaces | `SpacesPage/`, `SpacePage/`, `UnitsApiController.java` |
-| Combo locks | `LocksPage.tsx`, `LeaseLocksPage.tsx`, `LocksApiController.java` |
-| Users | `UsersPage/`, `UserDetailsPage/`, `ManagersApiController.java` |
-| Facility groups | `FacilityGroupsPage/`, `FacilitiesApiController.java` |
-| Communication | `CommunicationSettingsPage/`, `MessagesApiController.java` |
-
-Everything else can be derived by convention: `[Surface]Page/` → frontend, `[Surface]ApiController.java` → backend.
-
-### 3b. Fetch cross-team comparison pool
+### 3a. Fetch cross-team comparison pool
 
 Fetch ALL issues from both the Core FMS and ENG teams, **regardless of status**, to build a comparison list for duplicate detection.
 
@@ -165,7 +135,7 @@ Total: N issues (X from Core FMS, Y from ENG)
 
 Print: `Cross-team pool: N issues cached (X from Core FMS, Y from ENG)`
 
-### 3c. Fetch existing projects
+### 3b. Fetch existing projects
 
 Call `list_projects` with `team: Core FMS` to get existing projects. This list is used during per-ticket analysis for project bundling.
 
@@ -195,7 +165,7 @@ Rationale: [why this title was chosen]
 ### Theme Label
 [Theme label name] — [reason this theme fits best]
 
-### T-shirt Size
+### Claude Suggested Effort Estimate
 **[XS/S/M/L/XL]** (estimate=[1/2/3/5/8]) — [one-line rationale]
 
 ### Type
@@ -204,7 +174,7 @@ Rationale: [why this title was chosen]
 ### Design Needed
 [Yes / No] — [reason]
 
-### Claude Code Candidate
+### Vibe Code Candidate
 [Yes / No] — [reason]
 
 ### Suggested Priority
@@ -221,10 +191,8 @@ Rationale: [why this title was chosen]
 ### Needs Info
 [No / Yes — list missing items]
 
-### Surfaces & Code Paths
-Surfaces: [list]
-Frontend: [files]
-Backend: [files]
+### Affected Surfaces
+[List the user-facing pages, dialogs, tabs, and controls affected — e.g., "Rentals page → Lease details drawer → Payment history tab"]
 
 ### Proposed Approach
 [business-level description]
@@ -238,13 +206,13 @@ Backend: [files]
 
 ### Analysis criteria reference
 
-#### T-shirt Size (estimate)
+#### Claude Suggested Effort Estimate
 
-- **XS** (estimate=1): Typo, copy change, single config tweak, hyperlink fix
-- **S** (estimate=2): Single-field addition, minor UI adjustment, simple validation
-- **M** (estimate=3): New feature touching 2-3 files, moderate backend + frontend, new API endpoint
-- **L** (estimate=5): Multi-component feature, new workflow, schema migration + backend + frontend
-- **XL** (estimate=8): Large cross-cutting feature, architectural change, new subsystem
+- **XS** (estimate=1): Under a day — typo, copy change, single config tweak, hyperlink fix
+- **S** (estimate=2): 2–3 days — single-field addition, minor UI adjustment, simple validation
+- **M** (estimate=3): 4–5 days — new feature touching multiple areas, moderate backend + frontend, new API endpoint
+- **L** (estimate=5): 6–10 days — multi-component feature, new workflow, schema migration + backend + frontend
+- **XL** (estimate=8): More than 10 days — large cross-cutting feature, architectural change, new subsystem
 
 #### Type Classification
 
@@ -252,15 +220,18 @@ Backend: [files]
 - **Backend** — Server-only changes (API endpoints, DB queries, business logic, migrations)
 - **Frontend; Backend** — Requires changes on both frontend and backend
 
-#### Claude Code Candidate
+#### Vibe Code Candidate
 
-A ticket is a **Claude Code Candidate** if ALL of these are true:
-- The change is XS or S in size
-- It is low risk (unlikely to break other features)
-- It involves straightforward, well-scoped work like: adding/removing a column in a data grid, fixing a hyperlink, updating copy/labels, simple CSS/styling tweaks, adding a field to a form, toggling a feature flag
-- A non-developer product manager could realistically implement it by vibe-coding with Claude Code
+A ticket is a **Vibe Code Candidate** if it involves truly trivial, no-engineer-needed changes that a PM could ship with Claude Code. Examples:
+- Broken hyperlinks
+- Text, label, or copy changes
+- Tooltip or placeholder updates
+- Feature flag toggles that are already wired up
+- Pure cosmetic CSS tweaks
 
-If it doesn't meet ALL criteria, it is NOT a Claude Code Candidate.
+The litmus test: "Could a PM ship this with Claude Code without an engineer reviewing?" Size alone doesn't qualify — a small but complex backend change is NOT a Vibe Code Candidate.
+
+If it doesn't clearly pass the litmus test, it is NOT a Vibe Code Candidate.
 
 #### Suggested Priority
 
@@ -314,7 +285,7 @@ Flag a ticket as `Needs Info` if ANY of these are true:
 - **(a) Unclear problem**: The ticket doesn't clearly describe what is broken, missing, or needs to change
 - **(b) No reproduction steps**: For bug reports, there are no steps to reproduce the issue and no expected vs. actual behavior described
 - **(c) No customer context**: No information about who reported it, how many customers are affected, or how frequently the issue occurs
-- **(d) Ambiguous scope**: The description is vague enough that the t-shirt size estimate would be unreliable (e.g., "improve the payments page" with no specifics)
+- **(d) Ambiguous scope**: The description is vague enough that the effort estimate would be unreliable (e.g., "improve the payments page" with no specifics)
 
 When flagging `Needs Info`, list the specific items that are missing so they can be collected.
 
@@ -330,7 +301,7 @@ Every ticket gets a standardized title following this naming convention:
 - The prefix is the **primary page or surface** where the change takes place (e.g., `Rentals`, `Sitemap`, `Payments`, `Tenant Portal`, `Permissions`)
 - After the colon, a brief (3-8 word) summary of the change in imperative form (e.g., "Add source column", "Fix payment split display", "Allow deferred insurance upload")
 - If the change spans multiple pages equally, use the most user-facing or primary surface
-- Use the surface names from the dynamic surface map built in Step 3a
+- Use common surface names: Rentals, Payments, Collections, Sitemap, Units, Leads, Tasks, Shop, Walkthrough, Tenant Portal, Permissions, Settings, etc.
 
 **Examples:**
 - `Rentals: Add a source column`
@@ -391,7 +362,7 @@ Based on the primary surface/page identified during analysis, assign the **singl
 
 #### Project Bundling
 
-Using the project list fetched in Step 3c, for each ticket:
+Using the project list fetched in Step 3b, for each ticket:
 - If it clearly belongs to an existing project (based on theme labels and description), note the project name
 - If multiple unprocessed tickets share a theme but have no project, suggest they be bundled into a new project
 
@@ -463,7 +434,7 @@ For each analyzed ticket, call `save_issue` with the ticket identifier and:
   - `Claude Triaged` — always applied to every ticket that receives a triage comment
   - `Frontend` and/or `Backend` based on the type classification
   - `Design` if the ticket requires designer involvement
-  - `Claude Code Candidate` if applicable
+  - `Vibe Code Candidate` if applicable
   - `Needs Info` if the ticket is missing critical information
   - The assigned **Theme label** (e.g., `Theme: Payments`) if one was identified — only for Core FMS tickets or ENG tickets being moved to Core FMS
 - For ENG tickets that clearly fall under CORE FMS scope: `team`: `Core FMS` — this moves the ticket to the Core FMS team so it appears in the [CS Requests view](https://linear.app/cubbystorage/team/CORE/view/cs-requests-00bc39fed084). The ticket identifier will change from `ENG-XXXX` to `CORE-XXXX` after the move.
@@ -480,7 +451,7 @@ For each processed ticket, call `save_comment` with `issueId` set to the ticket 
 Use this comment template (fill in the values from `analysis.md`):
 
 ```
-<!-- triage-cs-requests v2 | [YYYY-MM-DD] -->
+<!-- triage-cs-requests v3 | [YYYY-MM-DD] -->
 
 > **TL;DR**: [One sentence: what this ticket is, how big it is, and whether it's actionable as-is. E.g., "Small frontend fix to add a missing column to the Payments grid — ready to pick up."]
 
@@ -488,12 +459,12 @@ Use this comment template (fill in the values from `analysis.md`):
 
 | Field | Value |
 |---|---|
-| **T-shirt Size** | [XS/S/M/L/XL] — [one-line rationale] |
+| **Effort Estimate** | [XS/S/M/L/XL] — [one-line rationale] |
 | **Type** | [Frontend / Backend / Frontend; Backend] |
 | **Theme** | [Theme label name, e.g., "Payments"] |
 | **Design** | [Yes / No] |
 | **Suggested Priority** | [Urgent / High / Medium / Low] |
-| **Claude Code Candidate** | [Yes / No] |
+| **Vibe Code Candidate** | [Yes / No] |
 
 ### Title Standardization
 
@@ -515,16 +486,9 @@ Use this comment template (fill in the values from `analysis.md`):
 
 [Why this matters: which customers are affected, how many, how frequently the issue occurs, whether revenue is at risk, whether there's a workaround, and how this aligns with product priorities.]
 
-### Affected Surfaces & Code Paths
+### Affected Surfaces
 
-**Surfaces**: [List the CORE FMS surfaces affected, e.g., Rentals, Payments, Tasks]
-
-| Layer | Files |
-|-------|-------|
-| Frontend | `[PageDirectory/]` |
-| Backend | `[ControllerName.java]` |
-
-[If the ticket touches surfaces not in the surface map, note what was found in the directory listings or mark as "Could not identify specific files — manual investigation needed."]
+[List the user-facing pages, dialogs, tabs, and controls that this change touches — described from the user's perspective. E.g., "Rentals page → Lease details drawer → Payment history tab", "Tenant Portal → Pay Now button → Payment method selector", "Settings → Lease configurations → Delinquency section"]
 
 ### Proposed Approach
 
@@ -565,7 +529,7 @@ This ticket is missing critical information needed to properly scope the work:
 </details>
 
 ---
-*Auto-generated by Hristo Zahariev's /triage-cs-requests skill (v2)*
+*Auto-generated by Hristo Zahariev's /triage-cs-requests skill (v3)*
 ```
 
 After posting the comment, update the ticket's row in `manifest.md` status from `analyzed` to `done`.
@@ -586,8 +550,8 @@ Print the summary table to the terminal:
 ## CS Request Triage Summary
 Run: [timestamp] | Workspace: [path]
 
-| Ticket | New Title | Original Title | Theme | Size | Priority | Type | Design | CC | Needs Info | Stale | Team Move | Related |
-|--------|-----------|----------------|-------|------|----------|------|--------|----|------------|-------|-----------|---------|
+| Ticket | New Title | Original Title | Theme | Size | Priority | Type | Design | Vibe | Needs Info | Stale | Team Move | Related |
+|--------|-----------|----------------|-------|------|----------|------|--------|------|------------|-------|-----------|---------|
 | [CORE-XXX](https://linear.app/cubbystorage/issue/CORE-XXX) | [new title] | [original title] | Payments | M | High | FE; BE | No | No | No | No | — | CORE-YYY |
 | [ENG-XXX](https://linear.app/cubbystorage/issue/ENG-XXX) | [new title] | [original title] | — | S | Medium | FE | Yes | Yes | No | ⚠️ 45d | → Core FMS | — |
 ...
@@ -595,7 +559,7 @@ Run: [timestamp] | Workspace: [path]
 ### Totals
 - Tickets processed: N
 - Already triaged (skipped): M
-- Labels applied: Frontend=X, Backend=Y, Design=D, Claude Code Candidate=Z, Needs Info=I
+- Labels applied: Frontend=X, Backend=Y, Design=D, Vibe Code Candidate=V, Needs Info=I
 - Tickets moved ENG → Core FMS: A
 - Stale tickets (30+ days): S
 - Duplicates found: B
