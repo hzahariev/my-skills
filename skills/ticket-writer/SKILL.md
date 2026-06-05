@@ -1,6 +1,6 @@
 ---
 name: ticket-writer
-description: Write well-defined Linear engineering issues in a structured format. Use when the user says "write a ticket", "create an issue", "spec this", "draft a linear ticket", "refine CORE-XXX", "rewrite this ticket", or any request to document a feature for engineering. Supports two modes — create (new issue) and refine (restructure existing issue by ID). Always drafts first for review, then pushes to Linear on confirmation.
+description: Write well-defined Linear engineering issues in a structured format. Only invoke when the user explicitly types /ticket-writer. Supports two modes — create (new issue) and refine (restructure existing issue by ID). Always drafts first for review, then pushes to Linear on confirmation.
 ---
 
 # ticket-writer
