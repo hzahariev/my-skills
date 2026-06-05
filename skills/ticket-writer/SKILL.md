@@ -5,7 +5,9 @@ description: Write well-defined Linear engineering issues in a structured format
 
 # ticket-writer
 
-Write Linear engineering issues that serve three audiences: **engineers** (know exactly what to build), **designers** (can validate their work captures all changes), and **Claude Code** (can use the issue as a completeness checklist).
+Write terse Linear engineering specs. Every line earns its place — if an engineer would skip it, cut it.
+
+> **Golden rule:** Keep terse phrasing for scope items that need to be delivered by dev. One observable fact per line. No explanations, no rationale, no filler. The ticket is a checklist of what to build — not a narrative of why.
 
 ---
 
@@ -28,8 +30,9 @@ Ask only what the user hasn't already provided. Skip any step their input alread
 2. **What should happen instead?** — the desired outcome
 3. **Is there a design?** — Figma link, or "not yet" / "not needed"
 4. **Any dependencies or blockers?** — related Linear issues, or skip
-5. **Any customer context?** — quotes, Slack links, or skip
-6. **Any technical constraints the engineer should know?** — or skip
+5. **Any technical constraints the engineer should know?** — or skip
+
+Do not ask about customer context. If the user provides it unprompted, store it for the post-push comment — it never enters the ticket body.
 
 When the user pastes raw input (Slack thread, meeting notes, customer email), extract problem/outcome/quotes and structure them. Do not ask the user to re-explain what they already provided.
 
@@ -49,10 +52,23 @@ When the user pastes raw input (Slack thread, meeting notes, customer email), ex
 
 ## Step 2 — Judge complexity
 
-Choose the format based on what the issue involves:
+**It's complex when 2+ of these are true:**
+- Multiple surface areas are changing (e.g., Shop + Payments + Permissions)
+- A new permission is being introduced
+- Conditional logic with different behavior branches (when X → Y, when Z → W)
+- A new data model, payment category, or transaction type
+- A cross-cutting fix alongside the main feature
+- Before/after behavior change pattern
 
-- **Standard** — single concern, one surface area, no permissions or migration changes
-- **Complex** — multiple concerns (frontend + backend + permissions + migrations), conditional logic, state transitions
+**It's standard when:**
+- Single surface, single concern
+- Outcomes are a flat list — no need to group by concern
+- An engineer can read it top to bottom without skipping irrelevant sections
+
+Reference examples:
+- **Complex:** CORE-49 (Shop: Add Manager Special sale action) — 4 concern groups, new permission, new payment category, conditional logic, cross-cutting Walk-in fix
+- **Standard (gold standard):** CORE-164 (Trigger: Add Move-out trigger) — terse flat list, one fact per line, no explanatory prose
+- **Standard:** CORE-163 (Workflows: Add move-in trigger and trigger sections), CORE-150 (Runs: Adjust runs screen badge styling), CORE-155 (Add preview for message templates), CORE-232 (Runs: Surface entity context in runs grid)
 
 ---
 
@@ -70,7 +86,9 @@ Examples:
 
 ### Description — Standard format
 
-Use for single-concern, well-scoped issues:
+Use for single-concern, well-scoped issues.
+
+Each outcome is one line. Sub-bullets only for conditionals (`when X → Y`) or default values — never for explanation. If a design reference exists, the ticket complements it — never replicates it. Only specify: field names, validation, conditional logic, defaults, constraints, and behavior not visible in the design.
 
 ```markdown
 [1-2 sentence intro — what this issue delivers and minimal context.]
@@ -86,24 +104,24 @@ Use for single-concern, well-scoped issues:
 
 ### What done looks like
 
-- [Observable outcome — falsifiable, machine-verifiable statement]
+- [Observable outcome — one terse line]
 - [Another outcome — reference exact field names, permission names, config paths]
 - [Another outcome]
 
-### Scope boundaries
+### Open questions to resolve w ENG during dev
 
-- [Explicit exclusion] is out of scope and should be tracked separately.
-
----
-
-### Customer context
-> "Direct quote" — Name, Company
-> [Source link]
+- [Known trap or ambiguity — one line]
 ```
+
+*Open questions are optional — include when the implementation has known traps or decisions ENG should make during dev. Omit for straightforward issues like CORE-155.*
 
 ### Description — Complex format
 
-Use for multi-concern issues with frontend + backend + permissions + migrations:
+Use for multi-concern issues with frontend + backend + permissions + migrations. Only include concern groups that are relevant — omit any group with nothing in it.
+
+Each group follows the same terse style as the standard format. One line per outcome. Sub-bullets only for conditionals, defaults, or before/after changes. No explanatory prose within outcomes. Inline clarifications use parenthetical — `(only when X)` — not a separate `*Note:*` bullet.
+
+If a design reference exists, the ticket complements it — never replicates it. Only specify: field names, validation, conditional logic, defaults, constraints, and behavior not visible in the design.
 
 ```markdown
 [1-2 sentence intro — what this issue delivers and minimal context.]
@@ -119,46 +137,44 @@ Use for multi-concern issues with frontend + backend + permissions + migrations:
 
 ### Context
 
-[3-6 sentences. Current state -> gap/problem -> what needs to change. Plain prose, no bullets.]
+[2-3 sentences. Current state → gap → what changes. No more.]
 
 ---
 
 ### What done looks like
 
 **Surface changes**
-- [What the user sees/does differently]
-  - detail
-  - *Note:* edge case or clarification
+- `Field name` (required/optional, constraint if any)
+  - **When [condition]** -> [behavior]
+- `Another field` (required)
 
 **Behavior & logic**
-- [What changes in processing, validation, state transitions]
+- [Terse outcome statement]
   - **When [condition]** -> [behavior]
-  - **Default:** [value] — [migration note or "no migration needed"]
-  - *Technical hint:* [inline note for engineers on this specific item]
+  - **Default:** [value]
+- Update `[existing component/dialog]`:
+  - **Before:** "[current text/behavior]"
+  - **After:** "[new text/behavior]"
 
 **Permissions**
-- [New or modified permissions]
-  - Who gets it by default (or "not assigned by default — admin must grant")
-  - What it gates
+- `Permission name` — not assigned by default, gates [what it controls]; specify which default role(s) it applies to
 
 **Migrations & data**
-- [Schema changes, data backfills, new categories]
-  - Migration required: yes/no
+- New [category/type/entry]: `Name`
+- New permission: `Group.Permission`; state default role assignment and link to related sections it feeds into (e.g., activity logs)
 
-### Scope boundaries
+### Open questions to resolve w ENG during dev
 
-- [Explicit exclusion] is out of scope and should be tracked separately.
-
----
-
-### Customer context
-> "Direct quote" — Name, Company
-> [Source link]
+- [Known trap or ambiguity — one line]
 ```
+
+### What goes to a comment, not the ticket body
+
+Customer context, scope boundaries, and discovery resources are posted as a separate comment after the issue is pushed (see Step 5). They never appear in the ticket body. The spec is for engineers — keep it to what they build.
 
 ### Optional sections rule
 
-Design reference, Dependencies, Context, and Customer context are only included when they have content. Omit any section that would be empty — never show placeholder text.
+Design reference, Dependencies, Context, and Open questions are only included when they have content. Omit any section that would be empty — never show placeholder text.
 
 ### Before -> after pattern
 
@@ -216,22 +232,28 @@ Preserve all existing metadata (assignee, priority, labels, project). Only updat
 
 ### Post-push (both modes)
 
-After successfully pushing, offer: "Want me to search for duplicate tickets and mark them as duplicates of this issue?" Search by keywords from the title and description, review matches, and present candidates for the user to confirm before marking.
+1. If scope boundaries, customer quotes, or discovery resources were collected, post them as a comment via `save_comment` with a `### PM context` header. Group: scope boundaries first, then customer context, then discovery links.
+2. Offer: "Want me to search for duplicate tickets and mark them as duplicates of this issue?" Search by keywords from the title and description, review matches, and present candidates for the user to confirm before marking.
 
 ---
 
 ## Format rules
 
+- **Brevity first** — default to the shortest phrasing that is still precise. "`X` is available on `Y`" not "A new `X` option has been added and is now available on `Y`". Strip filler words: "simply", "just", "also", "additionally", "as well". One outcome per line. If a bullet has no conditional or default, it's a single sentence.
 - **Backticks** for anything engineers need to identify precisely: field names (`overlock_exempt`), status values (`Needs advertisement`), config paths (`Settings > Lease configurations > [config] > Delinquency`), permission names (`Can edit rentability for vacant units`), flag names
 - **`if/when -> then`** for conditional logic, nested sub-bullets under the condition
 - **`->` arrows** for flows and state transitions: `Delivering lien` -> `Waiting for auction`
 - **Tables** for mapping multiple items (competitors, config options, columns, permissions)
 - **Before -> after tables** only when modifying existing behavior
-- **Bold key terms** on first use when introducing a concept
-- **`*Note:*`** for inline clarifications that don't fit the main flow
+- **Collapsible sections** — wrap complementary reference sections (matrices, warning tables, activity log templates, open questions) with `+++` markers before and after the content. This is Linear's native collapsible syntax. Do NOT use HTML `<details>`/`<summary>` tags — Linear does not render tables inside them.
+- **Table numbering** — number reference tables ("Table 1:", "Table 2:") in section headings for clear cross-referencing from the main body
+- **Internal anchor links** — when referencing another section in the ticket (e.g., "see warnings table below"), use Linear's internal anchor links for navigation instead of plain text references
 - **Machine-verifiable outcomes** — "what done looks like" items reference exact field names, permission names, config paths so an engineer or Claude Code can check against the codebase
-- Required vs optional fields explicitly stated with the condition that toggles them
-- Default values always stated with migration impact
+- **Concise field definitions** — use `Field name` (required/optional, constraint) format, not prose. E.g., `Amount` (required, > $0.00) not "Amount is a dollar input that accepts any dollar-and-cent value"
+- Default values always stated
+- **Technical hints are rare** — only include when pointing to a specific reusable config path or a non-obvious verification step. Don't hint at patterns engineers already know from their codebase. If you'd remove it during dev review, don't write it.
+- **"Same pattern as X" references are rare** — use only when the pattern is non-obvious or the engineer might build from scratch instead of reusing. One per ticket max, not on every bullet.
+- **No PM rationale in outcomes** — "What done looks like" items are pure outcomes, not justifications. E.g., "Revenue recorded under new `Manager Special` payment category" not "...which enables GL mapping rules and cleaner reporting for operators"
 
 ## What NOT to include
 
@@ -240,9 +262,14 @@ After successfully pushing, offer: "Want me to search for duplicate tickets and 
 - "User stories" (As a... I want... So that...)
 - "Acceptance criteria" headers
 - "Out of scope for v1" boilerplate
-- "Open questions" unless genuinely blocking and not answerable without the engineer
+- Scope boundaries in the ticket body (post as comment instead)
+- Customer context in the ticket body (post as comment instead)
+- **Blocking** open questions in the main spec body — if a question blocks work, resolve it before writing the ticket
 - Lengthy problem statements restating what the context already said
+- **Explanatory prose in outcomes** — no "which enables...", "this ensures...", "so that...", "this is because...". The outcome states what; the Context section (if needed) states why.
 - **Design narration** — if a design reference exists, do not describe dialog layouts, panel positions, button placements, or card contents that are visible in the design. Only specify: field names, validation rules, conditional logic, defaults, and technical constraints. The design covers what it looks like; the ticket covers how it behaves.
+- Section headers with no content or placeholder text
+- Technical hints about patterns the engineer already knows from their codebase
 
 ## How to use this skill
 
