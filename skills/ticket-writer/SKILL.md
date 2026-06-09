@@ -16,7 +16,8 @@ Write terse Linear engineering specs. Every line earns its place — if an engin
 Detect the mode from the user's input:
 
 - **Create** — user describes a feature, pastes raw context, or says "write a ticket for X"
-- **Refine** — user says "refine CORE-49", "rewrite CORE-XXX", or references an existing issue ID
+- **Spec** — ticket already exists (e.g., from triage or a stub) but has no structured spec yet. Treat like Create for drafting, but use the existing issue ID for the push (like Refine). Post original description as PM context comment before overwriting.
+- **Refine** — user says "refine CORE-49", "rewrite CORE-XXX", or references an existing issue ID that already has a structured spec
 
 ---
 
@@ -115,6 +116,8 @@ Each outcome is one line. Sub-bullets only for conditionals (`when X → Y`) or 
 
 *Open questions are optional — include when the implementation has known traps or decisions ENG should make during dev. Omit for straightforward issues like CORE-155.*
 
+*Quality gate for open questions: each question must describe a real ambiguity the PM cannot resolve — not a hypothetical the engineer will answer by reading the code. Before including an open question, ask: "Would the PM know the answer to this?" If yes, resolve it in the spec. "Would this question survive a 30-second conversation with an engineer?" If not, cut it.*
+
 ### Description — Complex format
 
 Use for multi-concern issues with frontend + backend + permissions + migrations. Only include concern groups that are relevant — omit any group with nothing in it.
@@ -146,6 +149,7 @@ If a design reference exists, the ticket complements it — never replicates it.
 **Surface changes**
 - `Field name` (required/optional, constraint if any)
   - **When [condition]** -> [behavior]
+  - Only visible when `[feature access flag]` is enabled (`[path to feature access config]`) — use when a new config depends on a feature access flag
 - `Another field` (required)
 
 **Behavior & logic**
@@ -159,9 +163,11 @@ If a design reference exists, the ticket complements it — never replicates it.
 **Permissions**
 - `Permission name` — not assigned by default, gates [what it controls]; specify which default role(s) it applies to
 
-**Migrations & data**
-- New [category/type/entry]: `Name`
-- New permission: `Group.Permission`; state default role assignment and link to related sections it feeds into (e.g., activity logs)
+**Release & data**
+- [Default state for new config — on/off]
+- [Release actions — e.g., "enable for [customer] on release"]
+- [Data implications — e.g., "existing leases unaffected, new config applies going forward"]
+- Do NOT specify database field names, column types, or migration scripts — those are ENG implementation decisions
 
 ### Open questions to resolve w ENG during dev
 
@@ -221,7 +227,19 @@ Call `save_issue` with:
 
 Do NOT set priority, labels, project, or cycle — the user manages those manually.
 
+### Spec mode
+
+Before updating the description, post a `### PM context` comment containing the original ticket description under an **Original ticket description** heading. This preserves the raw context (Slack quotes, customer details, reproduction steps) that the spec intentionally strips out. Then call `save_issue` with:
+- `id`: the existing issue identifier
+- `title`: the drafted title
+- `description`: the drafted description
+- `team`: `Core FMS`
+
+Do NOT set priority, labels, project, or cycle — the user manages those manually.
+
 ### Refine mode
+
+Before updating the description, post a `### PM context` comment containing the original ticket description under an **Original ticket description** heading — unless the original description already follows the structured spec format (in which case the comment is unnecessary).
 
 Call `save_issue` with:
 - `id`: the existing issue identifier (e.g., `CORE-49`)
@@ -230,7 +248,7 @@ Call `save_issue` with:
 
 Preserve all existing metadata (assignee, priority, labels, project). Only update title and description.
 
-### Post-push (both modes)
+### Post-push (all modes)
 
 1. If scope boundaries, customer quotes, or discovery resources were collected, post them as a comment via `save_comment` with a `### PM context` header. Group: scope boundaries first, then customer context, then discovery links.
 2. Offer: "Want me to search for duplicate tickets and mark them as duplicates of this issue?" Search by keywords from the title and description, review matches, and present candidates for the user to confirm before marking.
@@ -270,6 +288,12 @@ Preserve all existing metadata (assignee, priority, labels, project). Only updat
 - **Design narration** — if a design reference exists, do not describe dialog layouts, panel positions, button placements, or card contents that are visible in the design. Only specify: field names, validation rules, conditional logic, defaults, and technical constraints. The design covers what it looks like; the ticket covers how it behaves.
 - Section headers with no content or placeholder text
 - Technical hints about patterns the engineer already knows from their codebase
+
+## Batch workflow
+
+When writing multiple tickets in one session, draft all tickets before pushing any — this allows cross-referencing (e.g., "consider bundling with CORE-XXX") and ensures consistency across related tickets. Present all drafts together for review. Push sequentially after approval, posting PM context comments for each.
+
+---
 
 ## How to use this skill
 
