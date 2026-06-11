@@ -1,6 +1,6 @@
 ---
 name: ticket-writer
-description: Write well-defined Linear engineering issues in a structured format. Only invoke when the user explicitly types /ticket-writer. Supports two modes — create (new issue) and refine (restructure existing issue by ID). Always drafts first for review, then pushes to Linear on confirmation.
+description: Write well-defined Linear engineering issues in a structured format. Only invoke when the user explicitly types /ticket-writer. Supports three modes — create (new issue), spec (structure an existing unstructured ticket), and refine (restructure existing spec by ID). Always drafts first for review, then pushes to Linear on confirmation.
 ---
 
 # ticket-writer
@@ -49,6 +49,16 @@ When the user pastes raw input (Slack thread, meeting notes, customer email), ex
 
 **Multi-message input:** If the user needs to send screenshots, notes, or context across multiple messages (e.g., image limits), say: "Send everything you have. If you hit the image limit, keep going in follow-ups and say 'done' when finished." Do not start drafting until the user confirms all input is provided.
 
+### Simplest-scope challenge (all modes)
+
+Before drafting any ticket that introduces a new dialog, surface, or control, ask the user:
+
+> "Can the main use cases be solved by exposing or extending **existing** actions/controls to more statuses, users, or contexts — instead of building something new?"
+
+Reference case: CORE-223 started as a custom "Edit lien status" override dialog (status picker, warnings matrix, new event type, confirmation flow). After an ENG sync it collapsed into exposing the existing `Complete` and `Undo settle` actions on one more status each — same pain solved, fraction of the cost. The new-surface version was fully spec'd twice before being discarded.
+
+Also anchor the scope to concrete recurring pain: identify the actual support requests / DB writes the ticket should eliminate (e.g., "resolves use cases like CORE-698") and verify the smallest scope covers them. Anything beyond that is a candidate for the appendix or a follow-up ticket.
+
 ---
 
 ## Step 2 — Judge complexity
@@ -66,8 +76,11 @@ When the user pastes raw input (Slack thread, meeting notes, customer email), ex
 - Outcomes are a flat list — no need to group by concern
 - An engineer can read it top to bottom without skipping irrelevant sections
 
+**Complex-ticket gate:** If the ticket lands in complex format AND introduces a new dialog, surface, or data model, recommend the user validates the approach with ENG **before** finishing the deep spec. A 30-minute dev sync is cheaper than two rounds of spec polish on an approach that gets discarded (see CORE-223). Surface this as a one-line suggestion, not a blocker.
+
 Reference examples:
 - **Complex:** CORE-49 (Shop: Add Manager Special sale action) — 4 concern groups, new permission, new payment category, conditional logic, cross-cutting Walk-in fix
+- **Complex, scope-optimized:** CORE-223 (Auctions: Cancel lien process and complete unpaid auctions) — started as a new override dialog, simplified to extending existing actions after ENG sync
 - **Standard (gold standard):** CORE-164 (Trigger: Add Move-out trigger) — terse flat list, one fact per line, no explanatory prose
 - **Standard:** CORE-163 (Workflows: Add move-in trigger and trigger sections), CORE-150 (Runs: Adjust runs screen badge styling), CORE-155 (Add preview for message templates), CORE-232 (Runs: Surface entity context in runs grid)
 
@@ -174,6 +187,20 @@ If a design reference exists, the ticket complements it — never replicates it.
 - [Known trap or ambiguity — one line]
 ```
 
+### When to add a lifecycle diagram
+
+A rendered flow diagram replaces paragraphs of transition prose — one image can carry what would otherwise be 10+ bullets of "when X → Y" descriptions. Proactively offer to create one when **any** of these triggers apply:
+
+- The feature touches a **status/state machine** — entities moving between statuses (auction lifecycle, lease lifecycle, payment states, workflow runs)
+- The spec would otherwise need **3+ "moves to / reverts to / transitions to" bullets** describing flow
+- Actions are **conditional on current state** (different buttons/menus per status)
+- There are **branching outcomes** (sold/unsold, approved/rejected, paid/failed)
+- A **new transition is being added** to an existing flow — the diagram shows exactly where it slots in, highlighted in red
+
+When triggered, say: "This spec describes a state flow — want me to create a lifecycle diagram for it? It'll replace most of the transition descriptions."
+
+Production steps: build as SVG in HTML, render to PNG via Puppeteer, upload via `prepare_attachment_upload` + PUT + `create_attachment_from_upload`, embed with `![title](assetUrl)` in a `+++` collapsible section. Iterate with the user in the browser (`open file.html`) before uploading. Keep the source HTML file so future scope changes can update the diagram.
+
 ### What goes to a comment, not the ticket body
 
 Customer context, scope boundaries, and discovery resources are posted as a separate comment after the issue is pushed (see Step 5). They never appear in the ticket body. The spec is for engineers — keep it to what they build.
@@ -264,6 +291,7 @@ Preserve all existing metadata (assignee, priority, labels, project). Only updat
 - **Tables** for mapping multiple items (competitors, config options, columns, permissions)
 - **Before -> after tables** only when modifying existing behavior
 - **Collapsible sections** — wrap complementary reference sections (matrices, warning tables, activity log templates, open questions) with `+++` markers before and after the content. This is Linear's native collapsible syntax. Do NOT use HTML `<details>`/`<summary>` tags — Linear does not render tables inside them.
+- **Lifecycle diagram layout conventions** (see "When to add a lifecycle diagram" in Step 3 for triggers and production steps) — rendered image, never ASCII art (breaks in Linear's proportional font). Swim lanes per phase, decision diamonds for branching, new transitions highlighted in red, undo/revert actions as text labels next to the box (not return arrows — they create crossing lines). Pair with a Status × Actions matrix table in a collapsible section.
 - **Table numbering** — number reference tables ("Table 1:", "Table 2:") in section headings for clear cross-referencing from the main body
 - **Internal anchor links** — when referencing another section in the ticket (e.g., "see warnings table below"), use Linear's internal anchor links for navigation instead of plain text references
 - **Machine-verifiable outcomes** — "what done looks like" items reference exact field names, permission names, config paths so an engineer or Claude Code can check against the codebase
@@ -298,8 +326,9 @@ When writing multiple tickets in one session, draft all tickets before pushing a
 ## How to use this skill
 
 1. Ask clarifying questions only if feature behavior is genuinely ambiguous — not about goals, metrics, or audience.
-2. Judge standard vs complex format based on what the issue involves.
-3. Draft the title and description.
-4. Present the draft for review.
-5. On approval, push to Linear via `save_issue`.
-6. Keep it scannable. Every line earns its place — no fluff.
+2. Run the simplest-scope challenge before drafting anything that adds a new dialog, surface, or data model.
+3. Judge standard vs complex format based on what the issue involves. For complex + new surface, suggest an ENG sync before deep-spec'ing.
+4. Draft the title and description.
+5. Present the draft for review.
+6. On approval, push to Linear via `save_issue`.
+7. Keep it scannable. Every line earns its place — no fluff.
