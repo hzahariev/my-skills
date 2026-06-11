@@ -46,8 +46,20 @@ When the user pastes raw input (Slack thread, meeting notes, customer email), ex
 5. Present related issues from step 1 and ask: "Are any of these now duplicates, dependencies, or no longer relevant?"
 6. Present a short summary of the current structure and what's missing or could improve relative to the target format
 7. Ask the user what to change, add, or restructure — or proceed with a full reformat if they say "rewrite it"
+8. If an attached PR/branch implements an approach this respec discards, capture the discard rationale — it goes in the PM context comment on push — and remind the user to close the stale PR
 
 **Multi-message input:** If the user needs to send screenshots, notes, or context across multiple messages (e.g., image limits), say: "Send everything you have. If you hit the image limit, keep going in follow-ups and say 'done' when finished." Do not start drafting until the user confirms all input is provided.
+
+### Presenting decisions (all modes)
+
+When the interview or research surfaces a product decision, present 2–4 concrete options with consequences and a recommendation — never an open-ended question. Frame each option around a case the user can rule on: "A lease has rent paid through but a $25 fee due now — `Due today` or `Good`?" beats "How should standing work?"
+
+### Optional research (all modes — ask first)
+
+Both checks below cost real time and tokens. Offer them with a recommendation and let the user decide — never run them unprompted. For simple tickets (copy tweaks, single-control changes), skip the offer entirely.
+
+- **Codebase grounding** — offer when the ticket changes behavior/derivation logic or touches multiple surfaces: "Want me to verify this against the codebase (exact field/flag names, every surface consuming this behavior) — or are you confident in the details?" When run, the spec's surface list comes from the code, not from memory. Reference case: CORE-711's original spec named 3 affected surfaces; the codebase had 6+ consumers of the standing logic, plus an adjacent collections-queue bug.
+- **Related in-flight work** — when a related issue has an attached PR/branch, offer to read it for mechanisms this spec should reuse or must not contradict. Two tickets shipping divergent definitions of the same concept is a spec failure. Reference case: CORE-711 collapsed from "introduce a new due-now concept" to "reuse CORE-710's existing method" after reading its open PR.
 
 ### Simplest-scope challenge (all modes)
 
@@ -130,6 +142,8 @@ Each outcome is one line. Sub-bullets only for conditionals (`when X → Y`) or 
 *Open questions are optional — include when the implementation has known traps or decisions ENG should make during dev. Omit for straightforward issues like CORE-155.*
 
 *Quality gate for open questions: each question must describe a real ambiguity the PM cannot resolve — not a hypothetical the engineer will answer by reading the code. Before including an open question, ask: "Would the PM know the answer to this?" If yes, resolve it in the spec. "Would this question survive a 30-second conversation with an engineer?" If not, cut it.*
+
+*Quality gate for done items: each bullet must be independently observable. If it follows logically from another rule already in the spec, cut it — derived consequences are explanation, not scope. Implementation warnings ("without requiring X", "must not go stale") move to open questions.*
 
 ### Description — Complex format
 
@@ -235,6 +249,8 @@ Present the draft as a markdown code block the user can review. For refine mode,
 
 If the issue has 4+ concern groups or 15+ "done" items, suggest decomposing into sub-issues. This is a nudge, not an automatic action — the user decides.
 
+If the refined scope materially changes effort relative to the issue's current estimate, flag the mismatch in one line — never set the estimate yourself.
+
 Do not create or update anything in Linear until the user explicitly approves.
 
 ---
@@ -273,11 +289,11 @@ Call `save_issue` with:
 - `title`: the updated title
 - `description`: the updated description
 
-Preserve all existing metadata (assignee, priority, labels, project). Only update title and description.
+Preserve all existing metadata (assignee, priority, labels, project). Only update title and description. Never remove embedded images/screenshots from the description unless the user explicitly asks — even when a scope change appears to make them obsolete; flag instead and let the user decide.
 
 ### Post-push (all modes)
 
-1. If scope boundaries, customer quotes, or discovery resources were collected, post them as a comment via `save_comment` with a `### PM context` header. Group: scope boundaries first, then customer context, then discovery links.
+1. If scope boundaries, customer quotes, or discovery resources were collected, post them as a comment via `save_comment` with a `### PM context` header. Group: scope boundaries first, then discarded-approach rationale (if any), then customer context, then discovery links.
 2. Offer: "Want me to search for duplicate tickets and mark them as duplicates of this issue?" Search by keywords from the title and description, review matches, and present candidates for the user to confirm before marking.
 
 ---
@@ -325,10 +341,11 @@ When writing multiple tickets in one session, draft all tickets before pushing a
 
 ## How to use this skill
 
-1. Ask clarifying questions only if feature behavior is genuinely ambiguous — not about goals, metrics, or audience.
-2. Run the simplest-scope challenge before drafting anything that adds a new dialog, surface, or data model.
-3. Judge standard vs complex format based on what the issue involves. For complex + new surface, suggest an ENG sync before deep-spec'ing.
-4. Draft the title and description.
-5. Present the draft for review.
-6. On approval, push to Linear via `save_issue`.
-7. Keep it scannable. Every line earns its place — no fluff.
+1. Ask clarifying questions only if feature behavior is genuinely ambiguous — not about goals, metrics, or audience. Present decisions as options with a recommendation, never open-ended.
+2. Offer optional research (codebase grounding, related in-flight PRs) when it would change the spec — the user decides whether to spend the time.
+3. Run the simplest-scope challenge before drafting anything that adds a new dialog, surface, or data model.
+4. Judge standard vs complex format based on what the issue involves. For complex + new surface, suggest an ENG sync before deep-spec'ing.
+5. Draft the title and description.
+6. Present the draft for review.
+7. On approval, push to Linear via `save_issue`.
+8. Keep it scannable. Every line earns its place — no fluff.
