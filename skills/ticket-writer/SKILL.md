@@ -50,6 +50,8 @@ When the user pastes raw input (Slack thread, meeting notes, customer email), ex
 
 **Multi-message input:** If the user needs to send screenshots, notes, or context across multiple messages (e.g., image limits), say: "Send everything you have. If you hit the image limit, keep going in follow-ups and say 'done' when finished." Do not start drafting until the user confirms all input is provided.
 
+**Iterative review:** When the user reviews an already-pushed ticket and sends comments, collect them all before rewriting — one consolidated push beats editing after each comment (keeps the spec coherent, avoids churn and editor-lock bounces). If the user says "wait for all my comments," honor it explicitly before touching the ticket.
+
 ### Presenting decisions (all modes)
 
 When the interview or research surfaces a product decision, present 2–4 concrete options with consequences and a recommendation — never an open-ended question. Frame each option around a case the user can rule on: "A lease has rent paid through but a $25 fee due now — `Due today` or `Good`?" beats "How should standing work?"
@@ -95,6 +97,7 @@ Reference examples:
 - **Complex, scope-optimized:** CORE-223 (Auctions: Cancel lien process and complete unpaid auctions) — started as a new override dialog, simplified to extending existing actions after ENG sync
 - **Standard (gold standard):** CORE-164 (Trigger: Add Move-out trigger) — terse flat list, one fact per line, no explanatory prose
 - **Standard:** CORE-163 (Workflows: Add move-in trigger and trigger sections), CORE-150 (Runs: Adjust runs screen badge styling), CORE-155 (Add preview for message templates), CORE-232 (Runs: Surface entity context in runs grid)
+- **Workflow node / action (template):** CORE-165 (Node: add create task action) — the model for node tickets: capability-level bullets describing the action's observable behavior (fields it exposes, what it creates, when it skips), never the engine's run-loop mechanics or internal symbols
 
 ---
 
@@ -143,7 +146,7 @@ Each outcome is one line. Sub-bullets only for conditionals (`when X → Y`) or 
 
 *Quality gate for open questions: each question must describe a real ambiguity the PM cannot resolve — not a hypothetical the engineer will answer by reading the code. Before including an open question, ask: "Would the PM know the answer to this?" If yes, resolve it in the spec. "Would this question survive a 30-second conversation with an engineer?" If not, cut it.*
 
-*Quality gate for done items: each bullet must be independently observable. If it follows logically from another rule already in the spec, cut it — derived consequences are explanation, not scope. Implementation warnings ("without requiring X", "must not go stale") move to open questions.*
+*Quality gate for done items: each bullet must be independently observable. If it follows logically from another rule already in the spec, cut it — derived consequences are explanation, not scope. Implementation warnings ("without requiring X", "must not go stale") move to open questions. In a multi-ticket feature this applies across tickets too: if a fact is fully stated in another ticket, reference it ("events consolidated in CORE-840") rather than restating it — duplicated facts drift.*
 
 ### Description — Complex format
 
@@ -291,6 +294,8 @@ Call `save_issue` with:
 
 Preserve all existing metadata (assignee, priority, labels, project). Only update title and description. Never remove embedded images/screenshots from the description unless the user explicitly asks — even when a scope change appears to make them obsolete; flag instead and let the user decide.
 
+> **Verify the write landed.** After every `save_issue`, confirm the returned `description` / `updatedAt` reflects your change. If it echoes the OLD content and `updatedAt` didn't advance, the issue is open in the Linear app editor and the write silently no-op'd — ask the user to close it, then re-push. Re-fetch with `get_issue` before each edit, since users often hand-edit between turns.
+
 ### Post-push (all modes)
 
 1. If scope boundaries, customer quotes, or discovery resources were collected, post them as a comment via `save_comment` with a `### PM context` header. Group: scope boundaries first, then discarded-approach rationale (if any), then customer context, then discovery links.
@@ -332,6 +337,19 @@ Preserve all existing metadata (assignee, priority, labels, project). Only updat
 - **Design narration** — if a design reference exists, do not describe dialog layouts, panel positions, button placements, or card contents that are visible in the design. Only specify: field names, validation rules, conditional logic, defaults, and technical constraints. The design covers what it looks like; the ticket covers how it behaves.
 - Section headers with no content or placeholder text
 - Technical hints about patterns the engineer already knows from their codebase
+- **Internal code symbols** — class/service names, enum constant identifiers, private fields or variables (`WorkflowRunProcessorService`, `currentNodeIndex`, `WorkflowNodeType.SCHEDULE_CALL`). Litmus test: does this name exist only because of *how* eng builds it, not *what* the user observes? Cut it. Real existing entity fields the behavior keys off (`PhoneCall.status = ANSWERED`, `source = WORKFLOW`) stay — that's the observable contract, not the implementation. For workflow-node/action tickets especially, describe the action's observable behavior (what it creates, the fields it exposes, when it skips), never the run-loop mechanics (holds / advances / job-scheduling).
+
+## Decomposing a feature into multiple tickets
+
+When a feature is too big for one ticket (the 4+ concern-groups / 15+ done-items nudge in Step 4), split it into dependency-ordered iteration tickets with a shared foundation:
+
+- **One foundation ticket** owns the complete entity/data model and the complete permission set — built once. Later tickets populate or reference those fields/permissions; they never re-define schema or add permissions piecemeal (single migration footprint, no incremental model churn).
+- **Front-load the frontend** in the foundation: build all surfaces and controls permission-gated but non-functional, then later iterations wire each control's backend — so each FE area is touched once.
+- **Order by dependency** and label every ticket with its iteration in the opening line ("Iteration 2 of N; ships with CORE-XXX"). Keep the label style identical across the set.
+- **Single source of truth** — each fact lives in exactly one ticket; the others link to it (events, permission definitions, lifecycle rules: define once, reference everywhere else). Restating a shared rule in two tickets guarantees drift.
+- **Finish with a consistency pass** (e.g. `/cyw`) across the whole set: enum/field names, permission names + gating, shared constraints, iteration labels, and that every cross-reference resolves.
+
+Reference: the [Prime] Scheduled Calls split — CORE-738 (entity + full permission model + non-functional FE) → CORE-739 / CORE-840 (workflow node + lifecycle backend) → CORE-841 (go-live) → CORE-842 (manual). Permissions defined once in 738; events consolidated once in 840; each later ticket references rather than restates.
 
 ## Batch workflow
 
