@@ -56,7 +56,9 @@ gh pr view <number> --repo cubbystorage/cubby --json title,body,labels,changedFi
 ```
 
 Extract: **Title/description** (acceptance criteria), **Linear refs** (`CORE-123`, `ENG-456`,
-`ONB-44`, `REVMAN-5`), **changed-files count** (risk signal), **labels**.
+`ONB-44`, `REVMAN-5`), **changed-files count** (risk signal), **labels**. Also capture, for the
+plan/results tables (Step 2a): the **change type**, a one-line **problem** (what's broken/missing),
+and a one-line **solution** (what changed) — the PR body usually states both; the ticket fills gaps.
 
 ### 1b. Fetch Linear ticket context
 
@@ -70,8 +72,17 @@ criteria in the ticket — fetch it.
 
 ### 2a. Categorize each PR
 
-For each PR determine **Area** (title/files/ticket) and **Risk** (Low = 1–2 files UI-only /
-Medium = 3–20 files API+UI / High = 20+ files, permissions, data).
+For each PR determine:
+
+- **Type** — one of:
+  - `Bug` — fixes a reported/observed defect (has a `Bug` label or a customer report in the ticket).
+  - `Fix` — corrects unintended behavior in existing functionality (title `[Fix]` / `Fix:`), no formal bug report. *When Bug vs Fix is ambiguous: `Bug` if there's a `Bug` label or customer report, else `Fix`.*
+  - `Enhancement` — improves or extends an existing feature.
+  - `Big feature` — substantial net-new capability (new surface / permission / data model — the "complex" shape).
+- **Problem** — one line: what's broken or missing today (from the PR body / ticket).
+- **Solution** — one line: what changed to address it (from the PR body / ticket).
+- **Area** — title/files/ticket.
+- **Risk** — Low (1–2 files UI-only) / Medium (3–20 files API+UI) / High (20+ files, permissions, data).
 
 ### 2b. Testability triage (do this before any browser action)
 
@@ -94,7 +105,8 @@ Heuristics:
 
 ### 2c. Surface the plan and ask up front
 
-Present the categorization + triage table and ask, in **one** message, before testing:
+Present the categorization + triage table (columns: `PR | Type | Problem | Solution | Area | Risk | Bucket`)
+and ask, in **one** message, before testing:
 
 1. **Test data / preconditions** — for each `needs-data` PR, can the user point to or set up the
    data (with facility + unit/tenant/auction)? If not, it becomes `human-verify` or `not-on-staging`.
@@ -258,7 +270,7 @@ payment checks, workflow-run behavior) from *Known limitations* below.
 Maintain a gitignored `QA-RESULTS.md` in the working directory; update it after each result so the run
 survives context loss and is easy to share. It contains three sections:
 
-1. **Results table** — `# | PR | Area | Result | Notes`.
+1. **Results table** — `# | PR | Type | Problem | Solution | Area | Result | Notes`. `Type` = Bug / Fix / Enhancement / Big feature; `Problem` and `Solution` are the one-liners from Step 2a.
 2. **Human-verify checklist** — the Step 5 items with steps + Pass/Fail, check off as completed.
 3. **Slack block** — a copy-paste message, one line per PR:
    - `:white_check_mark:` PASS · `:x:` FAIL (append short reason) · `:loading:` PARTIAL / PENDING-HUMAN / NOT-ON-STAGING (append short reason)
