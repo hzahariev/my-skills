@@ -7,6 +7,10 @@ description: QA test release candidate PRs on staging. Tests each PR against acc
 
 Test release candidate PRs on staging against acceptance criteria. Triage what is verifiable on staging up front, test the verifiable ones, hand the rest to the user in a drivable checklist, and keep one editable result comment **per Linear ticket** (the canonical QA record) plus a running `QA-RESULTS.md` artifact. The GitHub PR gets only a single one-line pointer to that Linear comment, posted once QA is fully done.
 
+**Supporting files** — read each when you reach the step that needs it (don't load up front):
+- **`reference.md`** — staging URL/login, impersonation, what-works-well, and known staging limitations. Consult during triage (Step 2b) and the human-verify handoff (Step 5).
+- **`templates.md`** — the verbatim Linear QA-comment body template (Step 3e) and the `QA-RESULTS.md` skeleton (Step 6). Open it when you first post results.
+
 ## Arguments
 
 Parse arguments after the skill name:
@@ -17,29 +21,17 @@ Parse arguments after the skill name:
 
 ---
 
-## Token discipline (read first — this keeps the run cheap)
+## Token discipline (keeps the run cheap — apply on every browser interaction)
 
-Browser accessibility snapshots are the single biggest cost driver. A full-page
-`browser_snapshot` can be 5k–15k tokens; running dozens of them dominates the session.
-Follow these rules on every browser interaction:
+Browser accessibility snapshots are the single biggest cost driver (a full-page snapshot is 5k–15k tokens; dozens dominate the session).
 
-- **Never dump the full accessibility tree per step.** Default to a **scoped** snapshot:
-  pass `target` (a container ref) and a small `depth` (e.g. 6–14). Snapshot the grid/dialog
-  you care about, not the whole page + nav on every call.
-- **Read state from the URL and filter chips**, not from row dumps. Cubby grids encode
-  filters/sort/pagination in the URL (`?filters[...]=...&sorting[...]=...`) — reading the
-  resolved URL after a click often proves the criterion with zero snapshot cost.
-- **Use `browser_evaluate` for targeted extraction** (e.g. "does this listbox contain
-  option X?", "list the value-chips under the expanded region", "is this text present?")
-  instead of snapshotting and scanning a huge tree.
-- **Screenshots are evidence, not a reading tool.** Take a screenshot only to attach proof
-  for a notable PASS/FAIL; use snapshots/evaluate to *decide* the result.
-- **Re-use, don't re-snapshot.** Refs survive within a page state; only re-snapshot after a
-  navigation or DOM change, and keep it scoped.
-- Prefer `gh ... --jq` projections (as in Step 1) over fetching whole PR payloads.
+- **Never dump the full accessibility tree.** Default to a **scoped** snapshot (`target` ref + small `depth`, e.g. 6–14), or `browser_evaluate` for targeted reads ("does this listbox contain option X?", "is this text present?").
+- **Read state from the resolved URL + filter chips**, not row dumps — Cubby grids encode filters/sort/pagination in the URL (`?filters[...]=...&sorting[...]=...`), so the URL after a click often proves the criterion for free.
+- **Screenshots are evidence, not a reading tool** — take one only to attach PASS/FAIL proof; decide results via snapshot/evaluate.
+- **Re-use refs**; only re-snapshot after a navigation/DOM change, and keep it scoped.
+- Prefer `gh ... --jq` projections over whole-PR payloads.
 
-If you catch yourself about to take a third full-page snapshot on one screen, stop and
-switch to `target`-scoped snapshot or `browser_evaluate`.
+If you're about to take a third full-page snapshot on one screen, switch to a scoped snapshot or `browser_evaluate`.
 
 ---
 
@@ -101,7 +93,7 @@ Heuristics:
 - "Open dialog X but don't save" is **still `human-verify`** — the classifier treats the entry
   click as a mutation. Do not attempt it; route it to the user.
 - Backend-only / lease-scoped rendering (template variables, computed balances) is usually
-  **not visible in the in-app preview** (mock data, no bound lease) — see *Known limitations*.
+  **not visible in the in-app preview** (mock data, no bound lease) — see `reference.md` → *Known staging limitations*.
 
 ### 2c. Surface the plan and ask up front
 
@@ -121,12 +113,8 @@ and immediately queue `human-verify` / `needs-data` / `not-on-staging` into the 
 
 ## Step 3 — Test the `auto` / `auto-with-discard` PRs on staging
 
-**Staging URL:** `https://app-cubbysto-manager-staging-71a3fe-558743914190.us-east1.run.app/`
-
-### Login
-
-Navigate to staging and log in as site.admin (or the user-specified user). Get credentials from the
-user or the plan document — never hardcode them here.
+Staging URL, login, and impersonation details are in `reference.md`. Log in as site.admin (or the
+user-specified user); get credentials from the user or the plan document — never hardcode them.
 
 ### For each PR, run this loop:
 
@@ -171,45 +159,9 @@ full results to the GitHub PR — it gets only the one-line pointer in Step 7 �
 duplicate comments. *(If a PR has no Linear ticket, fall back to a single GitHub PR comment for that one.)*
 
 The body **must** keep the exact header `### Product Review / QA Test Results` and the
-`**Changelog summary**` line — `release-changelog` greps for both (it now reads them from this Linear comment).
+`**Changelog summary**` line — `release-changelog` greps for both (it reads them from this Linear comment).
 
-**Body template** (one consolidated comment; one results-table row per acceptance check):
-
-```
-### Product Review / QA Test Results
-
-**Changelog summary**
-<changelog line from 3d>
-
-**Scope**
-- PR: #<number>
-- Environment: <preview / staging URL>
-- Tested as: <user(s), e.g. "site.admin"; note impersonation for permission checks>
-- Status: <in progress / testing complete>
-
-**Results**
-
-| Check | Result |
-|---|---|
-| **A1** <short desc> | ✅ PASS |
-| ... | ⚠️ ... / ❌ FAIL |
-
-**Acceptance-criteria coverage:** <map the checks back to the ticket's numbered criteria>
-
----
-
-### 🐞 Issues
-<one self-contained block per bug — surface/file, numbered repro, expected vs actual, evidence
-link (screenshot/video), and a live status: OPEN / ✅ FIXED & re-verified. Omit the section if none.>
-
----
-
-**Result:** <PASS / FAIL / PARTIAL / PENDING-HUMAN>
-<brief summary>
-
----
-*Generated by Claude Code QA skill · <date>*
-```
+**Use the body template in `templates.md`** (one consolidated comment; one results-table row per acceptance check).
 
 **Create (first time):** call the Linear `save_comment` tool with `issueId` + `body`; capture the
 returned comment **`id`**.
@@ -241,7 +193,7 @@ file without the user's go-ahead.
 
 ## Step 4 — Restricted-user testing batch
 
-If any PRs need restricted-user testing:
+If any PRs need restricted-user testing (impersonation steps in `reference.md`):
 
 1. Admin tools (top-right) → Managers → find user → click row → **Impersonate**.
 2. Test all restricted-user PRs in sequence (avoids switching back and forth).
@@ -259,23 +211,21 @@ the user's PASS/FAIL (+ any evidence), then edit that PR's comment (3e) and the 
 the next.
 
 Pre-fill the known repro for common cases (template preview via the preview endpoint, settled-auction
-payment checks, workflow-run behavior) from *Known limitations* below.
+payment checks, workflow-run behavior) from `reference.md` → *Known staging limitations*.
 
 ---
 
 ## Step 6 — `QA-RESULTS.md` artifact (running source of truth)
 
 Maintain a gitignored `QA-RESULTS.md` in the working directory; update it after each result so the run
-survives context loss and is easy to share. It contains three sections:
+survives context loss and is easy to share. **Skeleton + section formats are in `templates.md`.** It has
+three sections:
 
 1. **Results table** — `# | PR | Type | Problem | Solution | Area | Result | Notes`. `Type` = Bug / Fix / Enhancement / Big feature; `Problem` and `Solution` are the one-liners from Step 2a.
 2. **Human-verify checklist** — the Step 5 items with steps + Pass/Fail, check off as completed.
-3. **Slack block** — a copy-paste message, one line per PR:
-   - `:white_check_mark:` PASS · `:x:` FAIL (append short reason) · `:loading:` PARTIAL / PENDING-HUMAN / NOT-ON-STAGING (append short reason)
-   - Format: `<emoji> <PR title> (#<number>)`
+3. **Slack block** — a copy-paste message, one line per PR (`:white_check_mark:` PASS · `:x:` FAIL · `:loading:` PARTIAL/PENDING-HUMAN/NOT-ON-STAGING, with a short reason; format `<emoji> <PR title> (#<number>)`).
 
-Ensure `QA-RESULTS.md` is gitignored (add it to `.gitignore` if not already) — it is scratch output,
-not committed.
+Ensure `QA-RESULTS.md` is gitignored (add it to `.gitignore` if not already) — it is scratch output, not committed.
 
 ---
 
@@ -299,40 +249,3 @@ Once the **whole QA is complete**:
 
 List any FAILs with repro for dev follow-up. Remind: "Run `/release-changelog` with these PRs to
 assemble the Notion changelog — the changelog summaries from each Linear QA comment will be reused."
-
----
-
-## Reference
-
-### Staging details
-- **URL:** `https://app-cubbysto-manager-staging-71a3fe-558743914190.us-east1.run.app/`
-- **Login:** provided by user per session (do not store)
-- **GitHub repo:** `cubbystorage/cubby`
-- **Linear teams:** Core FMS (`CORE-`), ENG (`ENG-`), ONB (`ONB-`), REVMAN (`REVMAN-`)
-- **Impersonation:** Admin tools → Managers → user row → Impersonate → … → Exit (yellow banner)
-
-### What works well (lean on these — they are cheap and reliable)
-- Read-only grid checks: default filter, sort both directions, column/badge visibility — proven via
-  the resolved URL + a scoped grid snapshot.
-- `auto-with-discard` inspection: open an editor (e.g. workflow trigger → change type → read the
-  condition listbox), then **Leave page / discard**. Great for "is option/condition X available?".
-- Template **variable-picker presence** checks (the value is registered/selectable) via the editor's
-  Insert-value / Values list — use `browser_evaluate` to scan the expanded group.
-
-### Known staging limitations (route these to human / eng up front)
-- **Template rendering (lease-scoped vars, computed balances):** the in-app preview uses **mock data**
-  and binds no `leaseId`, so `${Lease.*}` fixes (e.g. UnitSize trailing-zeros, EarliestLienEligibility,
-  late-fee %) are **not** observable there. Verify via `GET /message-templates/{id}/preview` with a real
-  `leaseId`, or a live send. (Variable *presence* in the picker is still checkable in-app.)
-- **Workflow runs cannot be simulated on staging** — skip-missing-template, trigger side effects, and
-  reservation→workflow behavior are `not-on-staging`; defer to backend/integration tests.
-- **Auctions:** Refund/Mark-as-failed-hiding and $0-settle need a **settled auction with collected
-  payment line items** (Winning Bid / Cleaning Deposit / Auction Deposit). Upcoming/unsettled auctions
-  can't exercise these — `needs-data`.
-- **Permission classifier:** any action it reads as a staging mutation is blocked even when you only
-  intend to open a dialog and not Save → `human-verify`, not an agent action.
-
-### What NOT to do on staging (mutates shared data)
-- Lease creation/deletion, payment flows (real card interaction), error-condition triggering, settling/
-  refunding auctions, applying exemptions, or anything that creates state that can't be cleanly undone.
-- Route all of these to the human-verify handoff (Step 5) with clear instructions.
