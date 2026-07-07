@@ -1,11 +1,15 @@
 ---
 name: release-testing
-description: QA test release candidate PRs on staging. Tests each PR against acceptance criteria from PR descriptions and Linear tickets, posts structured results to GitHub PRs and Linear tickets. Use when the user says "release testing", "test the release candidate", "qa the rc", "qa these PRs", or invokes /release-testing.
+description: QA test release candidate PRs in per-PR preview environments. Tests each PR against acceptance criteria from PR descriptions and Linear tickets, posts the full structured results as one consolidated comment on the associated Linear ticket (the canonical QA record), then a single closing pointer line on the GitHub PR. Use when the user says "release testing", "test the release candidate", "qa the rc", "qa these PRs", or invokes /release-testing.
 ---
 
 # Release Testing
 
-Test release candidate PRs on staging against acceptance criteria. Triage what is verifiable on staging up front, test the verifiable ones, hand the rest to the user in a drivable checklist, and keep one editable result comment per PR plus a running `QA-RESULTS.md` artifact.
+Test release candidate PRs in **per-PR preview environments** (never staging) against acceptance criteria. Triage what is verifiable in the preview up front, test the verifiable ones, hand the rest to the user in a drivable checklist, and keep one editable result comment **per Linear ticket** (the canonical QA record) plus a running `QA-RESULTS.md` artifact. The GitHub PR gets only a single one-line pointer to that Linear comment, posted once QA is fully done.
+
+**Supporting files** — read each when you reach the step that needs it (don't load up front):
+- **`reference.md`** — how to get each PR's preview URL, login, impersonation, what-works-well, and known preview-environment limitations. Consult during triage (Step 2b) and the human-verify handoff (Step 5).
+- **`templates.md`** — the verbatim Linear QA-comment body template (Step 3e) and the `QA-RESULTS.md` skeleton (Step 6). Open it when you first post results.
 
 ## Arguments
 
@@ -17,29 +21,17 @@ Parse arguments after the skill name:
 
 ---
 
-## Token discipline (read first — this keeps the run cheap)
+## Token discipline (keeps the run cheap — apply on every browser interaction)
 
-Browser accessibility snapshots are the single biggest cost driver. A full-page
-`browser_snapshot` can be 5k–15k tokens; running dozens of them dominates the session.
-Follow these rules on every browser interaction:
+Browser accessibility snapshots are the single biggest cost driver (a full-page snapshot is 5k–15k tokens; dozens dominate the session).
 
-- **Never dump the full accessibility tree per step.** Default to a **scoped** snapshot:
-  pass `target` (a container ref) and a small `depth` (e.g. 6–14). Snapshot the grid/dialog
-  you care about, not the whole page + nav on every call.
-- **Read state from the URL and filter chips**, not from row dumps. Cubby grids encode
-  filters/sort/pagination in the URL (`?filters[...]=...&sorting[...]=...`) — reading the
-  resolved URL after a click often proves the criterion with zero snapshot cost.
-- **Use `browser_evaluate` for targeted extraction** (e.g. "does this listbox contain
-  option X?", "list the value-chips under the expanded region", "is this text present?")
-  instead of snapshotting and scanning a huge tree.
-- **Screenshots are evidence, not a reading tool.** Take a screenshot only to attach proof
-  for a notable PASS/FAIL; use snapshots/evaluate to *decide* the result.
-- **Re-use, don't re-snapshot.** Refs survive within a page state; only re-snapshot after a
-  navigation or DOM change, and keep it scoped.
-- Prefer `gh ... --jq` projections (as in Step 1) over fetching whole PR payloads.
+- **Never dump the full accessibility tree.** Default to a **scoped** snapshot (`target` ref + small `depth`, e.g. 6–14), or `browser_evaluate` for targeted reads ("does this listbox contain option X?", "is this text present?").
+- **Read state from the resolved URL + filter chips**, not row dumps — Cubby grids encode filters/sort/pagination in the URL (`?filters[...]=...&sorting[...]=...`), so the URL after a click often proves the criterion for free.
+- **Screenshots are evidence, not a reading tool** — take one only to attach PASS/FAIL proof; decide results via snapshot/evaluate.
+- **Re-use refs**; only re-snapshot after a navigation/DOM change, and keep it scoped.
+- Prefer `gh ... --jq` projections over whole-PR payloads.
 
-If you catch yourself about to take a third full-page snapshot on one screen, stop and
-switch to `target`-scoped snapshot or `browser_evaluate`.
+If you're about to take a third full-page snapshot on one screen, switch to a scoped snapshot or `browser_evaluate`.
 
 ---
 
@@ -87,7 +79,7 @@ For each PR determine:
 ### 2b. Testability triage (do this before any browser action)
 
 Put **every** PR into exactly one bucket. This decides who tests it and prevents wasting a run
-attempting things staging or the permission classifier won't allow.
+attempting things the preview environment or the permission classifier won't allow.
 
 | Bucket | Meaning | Who/how |
 |---|---|---|
@@ -95,13 +87,13 @@ attempting things staging or the permission classifier won't allow.
 | `auto-with-discard` | Requires entering an editor to *inspect* options, but changes can be abandoned without saving (e.g. workflow trigger/condition picker) | Agent tests in Step 3, then **discard** (see safety note) |
 | `human-verify` | Entry point is a pre-submit dialog/wizard or any mutating action. The auto-mode permission classifier blocks these even when you only intend to view and not Save (e.g. "Create rental" wizard, "Add delinquency exemption" dialog, settling/refunding an auction) | Hand to user — they drive, agent records |
 | `needs-data` | Verifiable in principle but the precondition isn't present (e.g. a settled+paid auction, a delinquent tenant, colliding access codes) | Ask user to provide/point to data, else → human-verify |
-| `not-on-staging` | Cannot be exercised on staging at all (live workflow runs, reservation→workflow side effects, external integration toggles like OpenTech) | Defer to engineering (backend/integration tests) |
+| `not-on-staging` | Cannot be exercised in the preview env at all (live workflow runs, reservation→workflow side effects, external integration toggles like OpenTech) — bucket/result token kept as-is | Defer to engineering (backend/integration tests) |
 
 Heuristics:
 - "Open dialog X but don't save" is **still `human-verify`** — the classifier treats the entry
   click as a mutation. Do not attempt it; route it to the user.
 - Backend-only / lease-scoped rendering (template variables, computed balances) is usually
-  **not visible in the in-app preview** (mock data, no bound lease) — see *Known limitations*.
+  **not visible in the in-app preview** (mock data, no bound lease) — see `reference.md` → *Known preview-environment limitations*.
 
 ### 2c. Surface the plan and ask up front
 
@@ -111,7 +103,7 @@ and ask, in **one** message, before testing:
 1. **Test data / preconditions** — for each `needs-data` PR, can the user point to or set up the
    data (with facility + unit/tenant/auction)? If not, it becomes `human-verify` or `not-on-staging`.
 2. **Restricted user** — for any permission-gated PR, which user to impersonate, at which facility.
-3. **Credentials** — site.admin (or other) login for staging (never stored in this file).
+3. **Credentials** — site.admin (or other) login for the preview env (never stored in this file).
 
 Wait for answers. Then test order: `auto` and `auto-with-discard` first (cheap, high confidence),
 and immediately queue `human-verify` / `needs-data` / `not-on-staging` into the human checklist
@@ -119,14 +111,11 @@ and immediately queue `human-verify` / `needs-data` / `not-on-staging` into the 
 
 ---
 
-## Step 3 — Test the `auto` / `auto-with-discard` PRs on staging
+## Step 3 — Test the `auto` / `auto-with-discard` PRs in the preview env
 
-**Staging URL:** `https://app-cubbysto-manager-staging-71a3fe-558743914190.us-east1.run.app/`
-
-### Login
-
-Navigate to staging and log in as site.admin (or the user-specified user). Get credentials from the
-user or the plan document — never hardcode them here.
+Each PR's preview URL (from its `github-actions` comment), login, and impersonation details are in
+`reference.md`. Log in as site.admin (or the user-specified user); get credentials from the user or
+the plan document — never hardcode them.
 
 ### For each PR, run this loop:
 
@@ -162,65 +151,27 @@ extract it.
 
 Operator-facing language ("you can now…", "Cubby now…"). No dev jargon (cache, refetch, prefetch…).
 
-#### 3e. Post / update results — ONE comment per PR, edited in place
+#### 3e. Post / update results — ONE consolidated comment on the Linear ticket, edited in place
 
-Post a single QA comment per PR and **edit that same comment** as the result evolves
-(`auto` result now → final result after a human verifies). Do **not** stack duplicate
-"UPDATE" comments.
+The **full QA results live on the associated Linear ticket** as a single comment, **edited in
+place** via its comment `id` as the run progresses (`auto` result now → final result after human
+verify / bug-fix retests). This Linear comment is the **canonical QA record**. Do **not** post the
+full results to the GitHub PR — it gets only the one-line pointer in Step 7 — and do not stack
+duplicate comments. *(If a PR has no Linear ticket, fall back to a single GitHub PR comment for that one.)*
 
 The body **must** keep the exact header `### Product Review / QA Test Results` and the
-`**Changelog summary**` line — `release-changelog` greps for both.
+`**Changelog summary**` line — `release-changelog` greps for both (it reads them from this Linear comment).
 
-**Create (first time) and capture the comment id:**
+**Use the body template in `templates.md`** (one consolidated comment; one results-table row per acceptance check).
 
-`gh pr comment` prints the new comment's URL, e.g.
-`https://github.com/cubbystorage/cubby/pull/7626#issuecomment-4622805916`. The **comment id is
-the number after `issuecomment-`** (here `4622805916`) — capture it to edit the comment later.
+**Create (first time):** call the Linear `save_comment` tool with `issueId` + `body`; capture the
+returned comment **`id`**.
+**Update in place:** call `save_comment` again with that `id` — edit the same comment as results land
+and bugs flip to fixed. Verify the returned body each time (`save_comment` can silently no-op if the
+issue is open in the Linear app editor — the editor-lock gotcha).
 
-```bash
-# GitHub — note the printed URL; the trailing #issuecomment-<id> number is the comment id
-gh pr comment <number> --repo cubbystorage/cubby --body "$(cat <<'EOF'
-### Product Review / QA Test Results
-
-**Changelog summary**
-<changelog line from 3d>
-
-**Scope**
-- Page/area tested: <page + specific UI element>
-- Staging URL: <direct link>
-- Tested as: <user(s), e.g. "site.admin">
-
-**Acceptance criteria**
-- [x] <criterion — checked if passed>
-- [ ] <criterion — unchecked if failed/pending, with note>
-
-**Result:** <PASS / FAIL / PARTIAL / PENDING-HUMAN / NOT-ON-STAGING>
-<Brief summary. FAIL: issue + numbered repro + evidence link. PENDING-HUMAN: what the user must drive. NOT-ON-STAGING: why + suggested eng coverage.>
-
----
-*Generated by Claude Code QA skill · <date>*
-EOF
-)"
-```
-
-**Edit the existing comment** when the result changes (e.g. user reports PASS for a
-`PENDING-HUMAN` item) — do not create a new one. The id-based PATCH is the reliable path
-(it targets the exact comment regardless of anything posted after it):
-
-```bash
-# Replace the body of the captured comment (<comment_id> = the #issuecomment-<id> number)
-gh api repos/cubbystorage/cubby/issues/comments/<comment_id> -X PATCH -f body="$(cat <<'EOF'
-<full updated body, same header + Changelog summary line, new Result>
-EOF
-)"
-```
-
-(`gh pr comment <number> --edit-last` is a same-turn convenience, but it edits the author's
-*most recent* comment — don't use it if any other comment may have landed after the QA one;
-prefer the id-based PATCH above.)
-
-**Linear:** post the same body with `save_comment`. To update, call `save_comment` again
-passing the existing comment **`id`** (it updates in place). Skip Linear if the PR has no ticket.
+The web **anchor** is built from the **first segment** of the comment UUID (id `47333a74-2e40-…` →
+`…/issue/<KEY>/…#comment-47333a74`) — capture it for the PR pointer in Step 7.
 
 These comments are posted on behalf of the user; the attribution line marks them as skill-generated.
 
@@ -243,7 +194,7 @@ file without the user's go-ahead.
 
 ## Step 4 — Restricted-user testing batch
 
-If any PRs need restricted-user testing:
+If any PRs need restricted-user testing (impersonation steps in `reference.md`):
 
 1. Admin tools (top-right) → Managers → find user → click row → **Impersonate**.
 2. Test all restricted-user PRs in sequence (avoids switching back and forth).
@@ -261,71 +212,41 @@ the user's PASS/FAIL (+ any evidence), then edit that PR's comment (3e) and the 
 the next.
 
 Pre-fill the known repro for common cases (template preview via the preview endpoint, settled-auction
-payment checks, workflow-run behavior) from *Known limitations* below.
+payment checks, workflow-run behavior) from `reference.md` → *Known preview-environment limitations*.
 
 ---
 
 ## Step 6 — `QA-RESULTS.md` artifact (running source of truth)
 
 Maintain a gitignored `QA-RESULTS.md` in the working directory; update it after each result so the run
-survives context loss and is easy to share. It contains three sections:
+survives context loss and is easy to share. **Skeleton + section formats are in `templates.md`.** It has
+three sections:
 
 1. **Results table** — `# | PR | Type | Problem | Solution | Area | Result | Notes`. `Type` = Bug / Fix / Enhancement / Big feature; `Problem` and `Solution` are the one-liners from Step 2a.
 2. **Human-verify checklist** — the Step 5 items with steps + Pass/Fail, check off as completed.
-3. **Slack block** — a copy-paste message, one line per PR:
-   - `:white_check_mark:` PASS · `:x:` FAIL (append short reason) · `:loading:` PARTIAL / PENDING-HUMAN / NOT-ON-STAGING (append short reason)
-   - Format: `<emoji> <PR title> (#<number>)`
+3. **Slack block** — a copy-paste message, one line per PR (`:white_check_mark:` PASS · `:x:` FAIL · `:loading:` PARTIAL/PENDING-HUMAN/NOT-ON-STAGING, with a short reason; format `<emoji> <PR title> (#<number>)`).
 
-Ensure `QA-RESULTS.md` is gitignored (add it to `.gitignore` if not already) — it is scratch output,
-not committed.
+Ensure `QA-RESULTS.md` is gitignored (add it to `.gitignore` if not already) — it is scratch output, not committed.
 
 ---
 
-## Step 7 — Final summary
+## Step 7 — Final summary + PR pointer
 
-Print the results table + the Slack block, then:
+Once the **whole QA is complete**:
 
-```
-**Summary:** X passed, Y failed, Z partial, W pending-human, V not-on-staging
-**Comments posted:** X PRs on GitHub, Y tickets on Linear
-```
+1. **Post the PR pointer** — for each PR, add **one single-line comment** on the GitHub PR: the
+   verdict + a link to its Linear results comment (use the first-segment anchor from 3e). Nothing
+   else goes on the PR — keep its comment section clean.
+   ```bash
+   gh pr comment <number> --repo cubbystorage/cubby --body "✅ QA verified & passed — full results: <issueUrl>#comment-<id>"
+   ```
+   Use ❌ / ⚠️ + a one-line reason for FAIL / PARTIAL.
+
+2. Print the results table + the Slack block, then:
+   ```
+   **Summary:** X passed, Y failed, Z partial, W pending-human, V not-on-staging
+   **Comments posted:** Y Linear tickets (full results) + X PR pointer lines
+   ```
 
 List any FAILs with repro for dev follow-up. Remind: "Run `/release-changelog` with these PRs to
-assemble the Notion changelog — the changelog summaries from each PR comment will be reused."
-
----
-
-## Reference
-
-### Staging details
-- **URL:** `https://app-cubbysto-manager-staging-71a3fe-558743914190.us-east1.run.app/`
-- **Login:** provided by user per session (do not store)
-- **GitHub repo:** `cubbystorage/cubby`
-- **Linear teams:** Core FMS (`CORE-`), ENG (`ENG-`), ONB (`ONB-`), REVMAN (`REVMAN-`)
-- **Impersonation:** Admin tools → Managers → user row → Impersonate → … → Exit (yellow banner)
-
-### What works well (lean on these — they are cheap and reliable)
-- Read-only grid checks: default filter, sort both directions, column/badge visibility — proven via
-  the resolved URL + a scoped grid snapshot.
-- `auto-with-discard` inspection: open an editor (e.g. workflow trigger → change type → read the
-  condition listbox), then **Leave page / discard**. Great for "is option/condition X available?".
-- Template **variable-picker presence** checks (the value is registered/selectable) via the editor's
-  Insert-value / Values list — use `browser_evaluate` to scan the expanded group.
-
-### Known staging limitations (route these to human / eng up front)
-- **Template rendering (lease-scoped vars, computed balances):** the in-app preview uses **mock data**
-  and binds no `leaseId`, so `${Lease.*}` fixes (e.g. UnitSize trailing-zeros, EarliestLienEligibility,
-  late-fee %) are **not** observable there. Verify via `GET /message-templates/{id}/preview` with a real
-  `leaseId`, or a live send. (Variable *presence* in the picker is still checkable in-app.)
-- **Workflow runs cannot be simulated on staging** — skip-missing-template, trigger side effects, and
-  reservation→workflow behavior are `not-on-staging`; defer to backend/integration tests.
-- **Auctions:** Refund/Mark-as-failed-hiding and $0-settle need a **settled auction with collected
-  payment line items** (Winning Bid / Cleaning Deposit / Auction Deposit). Upcoming/unsettled auctions
-  can't exercise these — `needs-data`.
-- **Permission classifier:** any action it reads as a staging mutation is blocked even when you only
-  intend to open a dialog and not Save → `human-verify`, not an agent action.
-
-### What NOT to do on staging (mutates shared data)
-- Lease creation/deletion, payment flows (real card interaction), error-condition triggering, settling/
-  refunding auctions, applying exemptions, or anything that creates state that can't be cleanly undone.
-- Route all of these to the human-verify handoff (Step 5) with clear instructions.
+assemble the Notion changelog — the changelog summaries from each Linear QA comment will be reused."
