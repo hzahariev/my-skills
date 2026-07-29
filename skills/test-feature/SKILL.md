@@ -1,6 +1,6 @@
 ---
-name: release-testing
-description: QA test release candidate PRs in per-PR preview environments. Tests each PR against acceptance criteria from PR descriptions and Linear tickets, posts the full structured results as one consolidated comment on the associated Linear ticket (the canonical QA record), then a single closing pointer line on the GitHub PR. Use when the user says "release testing", "test the release candidate", "qa the rc", "qa these PRs", or invokes /release-testing.
+name: test-feature
+description: QA test release candidate PRs in per-PR preview environments. Tests each PR against acceptance criteria from PR descriptions and Linear tickets, posts the full structured results as one consolidated comment on the associated Linear ticket (the canonical QA record), then a single closing pointer line on the GitHub PR. Use when the user says "release testing", "test the release candidate", "qa the rc", "qa these PRs", "test the feature", or invokes /test-feature.
 ---
 
 # Release Testing

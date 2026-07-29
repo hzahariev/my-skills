@@ -5,7 +5,7 @@ description: Assemble a Notion changelog entry for a release. Pulls changelog su
 
 # Release Changelog
 
-Assemble a Notion changelog entry from PR comments posted by the `release-testing` skill. Classify items, draft the changelog, and update the Notion page with user approval.
+Assemble a Notion changelog entry from PR comments posted by the `test-feature` skill (formerly `release-testing`). Classify items, draft the changelog, and update the Notion page with user approval.
 
 ## Arguments
 
