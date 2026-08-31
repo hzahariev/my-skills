@@ -8,7 +8,13 @@ description: Group a release candidate's PR list under team leads for the RC Sla
 Turn a flat release-candidate PR list into a Slack post grouped by **team lead**, matching
 the format the team uses every release (each lead is a header; their team's PRs are bullets
 underneath). This is how QA ownership gets divided when an RC is announced — it usually runs
-right after the RC-deployed message and before `qa-rc-testing`.
+right after the RC-deployed message and before `test-feature`.
+
+> This skill is the **standalone grouping logic** (parse → authors → teams → leads), for ad-hoc
+> "group this RC for me" requests. The **automated** Tue/Fri watcher — detect the RC, create the
+> Notion changelog shell, and post the canonical **two-part threaded** breakdown to
+> #release-notes-coordination — lives in the `release-rc-watcher` skill, which is the source of
+> truth for both the cloud and local routines. Keep the lead map + gotchas below in step with it.
 
 Always show a draft and get approval before posting anything to Slack.
 
@@ -71,16 +77,16 @@ Linear has **no "team lead" field**, so do NOT expect to read it from Linear:
 3. **Some teams roll up under another team's lead** rather than getting their own header —
    nest their PRs as a sub-group under that lead and cc the person who did the work.
 
-Known leads (confirmed Jun 2026 — re-confirm periodically; they can change):
+Known leads (as of Aug 2026 — re-confirm periodically; they can change):
 - Core FMS → **Itso / Hristo Zahariev**
-- Communications → **Dimitar Milenkov**
-- Storefront → **Jan Früchtl**
-- Onboarding / Import → **James Baumeister**
+- Communications → **mitko** (`U06JXJQAMHQ`)
+- Storefront → **Jan Früchtl** (no Slack ID → write "Jan" as plain text)
+- Onboarding / Import → **James Baumeister** (cc Hanna, Evgeni Jechev)
 - AI → **Declan Starrett**
-- Revenue Management → **rolls up under Declan Starrett**, cc the RevMan author (e.g. David Starr)
+- Revenue Management → **James Randall** — its OWN section (took over from Declan Starrett on 2026-07-23), cc the RevMan authors (e.g. David Starr, Hunter Buckhorn)
 - Reporting → **Vladimir Mladenov**
-- Corp → **Jason Maytin**
-- Platform / DevX / API / bumps / tests → **Ivan Anev**
+- Corp → **Jason Maytin** (n/a — no changelog owner)
+- Platform / DevX / API / bumps / tests → **Ivan Anev** (header is just `` `Platform - n/a` ``, do NOT @mention him)
 
 ---
 
@@ -88,11 +94,19 @@ Known leads (confirmed Jun 2026 — re-confirm periodically; they can change):
 
 Group PRs as bullets under each lead. **Default rule: a PR goes under its author's team lead.**
 
+Overrides (author wins over subject, no ⚠️):
+- **Evgeni Jechev** or **Hanna Matveyeva** → Onboarding / Import regardless of subject. Does NOT
+  apply to **Hannah Groves** (RevMan — see Gotchas).
+- **Christo Dimitrov** (EM, authors across many teams) → bucket HIS PRs by subject / ticket prefix
+  (`[CORE-…]`→Core FMS, `[REPORT-…]`→Reporting, `[COMMS-…]`→Communications); don't flag him.
+
+Then:
 - If a PR's subject area clearly differs from the author's team (e.g. a `[REPORT-*]` fix
-  written by an AI-team dev, or DevX / bot / infra PRs by product-team devs), keep it under
-  the author's team but mark it **⚠️** so the user can decide.
-- Group all infra / DevX / dependency-bump / test PRs under the **Platform** lead (mirror the
-  prior message's "PLATFORM · API/BQ · DevX/bumps · TESTS" sub-grouping if it had one).
+  written by an AI-team dev), keep it under the author's team but mark it **⚠️** so the user
+  can decide.
+- Group all infra / DevX / deploy / terraform / dependency-bump / test PRs under the **Platform**
+  lead (sub-grouped `API/BQ` · `DevX / infra` · `TESTS` · `bumps`), even when authored by a
+  product-team engineer.
 
 ---
 
@@ -119,6 +133,8 @@ Slack is sending on the user's behalf — confirm first.
   - "Christo Dimitrov" (engineer, `christo@`, GitHub `cerebraldeath`) is **NOT** "Hristo /
     Itso Zahariev" (PM, `hristo.zahariev@`).
   - GitHub `dbstarr` = **David Starr** (Revenue Management) is **NOT** Declan Starrett (AI).
+  - GitHub `hsgroves` = **Hannah Groves** (Revenue Management) is **NOT** Hanna Matveyeva
+    (Onboarding) — the Evgeni/Hanna→Onboarding override applies only to Hanna Matveyeva.
 - **Bots:** Dependabot PRs → Platform "bumps", no person attached.
 - **Coverage:** never show a draft whose PR count doesn't match Step 1's total — a missing or
   duplicated PR is the most common error here.
@@ -131,4 +147,5 @@ Slack is sending on the user's behalf — confirm first.
 - **Releases channel:** `#eng-releases` (`C03MVKKSB8B`) — RC announcements + grouped QA replies
 - **Linear teams:** Core FMS, Communications, Platform, Storefront, Revenue Management, AI,
   Reporting, Onboarding, Corp (plus non-eng: Product, Design, Accounting, Access Control Support)
-- **Pairs with:** `qa-rc-testing` (test the PRs you own) → `release-changelog` (write the notes).
+- **Pairs with:** `release-rc-watcher` (the automated detect→group→post routine) · `test-feature`
+  (QA the PRs you own) → `release-changelog` (write the notes).
