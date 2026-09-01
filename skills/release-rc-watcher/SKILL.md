@@ -17,7 +17,7 @@ You are the release-candidate watcher for Hristo (PM at Cubby Storage, Slack han
 - **Cloud primary** — fires Tue/Fri **09:00** EEST. The `cubbystorage/cubby` repo is attached; the GitHub CLI is NOT authenticated and there is NO local marker file.
 - **Local fallback** — fires Tue/Fri **09:30** EEST, 30 min later, as a safety net. The GitHub CLI (`gh`) is authenticated and the marker file exists locally.
 
-Whichever runs second finds the breakdown already in #release-notes-coordination (Step 2) and exits quietly — so there is never a duplicate.
+Whichever runs second finds the breakdown already in #release-notes-coordination (Step 2) and exits quietly — and every run re-checks the channel immediately before posting (Step 6.2), so even a slow paired run can't double-post. (The 2026-09-01 RC 31 Aug duplicate happened exactly because the check ran early and the post went out late.)
 
 **Posting is authorised** (Hristo, 2026-08-06 — the earlier draft-only constraint is lifted). Post the two-part message yourself at the end of the run, unattended, without asking. Also create the blank shell changelog page in Notion (Step 4) so the CTA link is live. Never edit or publish existing Notion pages, never write to Linear or GitHub, and never post anywhere other than #release-notes-coordination.
 
@@ -132,12 +132,13 @@ Slack-render gotchas:
 ## Step 6 — Save, post, and record
 
 1. Write the breakdown to `~/.claude/release-watcher/<RC label>/breakdown.md` — Slack-ready, with both a `=== PARENT MESSAGE ===` block (Part 1, including the real CTA URL) and a `=== FIRST THREAD REPLY ===` block (Part 2). Write BEFORE posting, so a Slack failure still leaves the work on disk. (Skip if the environment has no writable home for it.)
-2. **Post to #release-notes-coordination (C086QAY9UNL)** via `slack_send_message`, as TWO calls so it renders as a real thread:
+2. **Re-run the Step-2 coordination-channel check immediately before posting — this is mandatory, not optional.** Time passes between Step 2 and here (author resolution, Notion work, interruptions), and the paired routine may have posted in that window — the 09:00/09:30 stagger only protects when the check is adjacent to the post. Read the latest messages in C086QAY9UNL one more time; if a breakdown for this RC has appeared since Step 2, do NOT post: record the marker (step 4, local only) and report "RC already grouped — raced by the paired routine; nothing posted." The saved breakdown.md stays on disk as the run's artifact.
+3. **Post to #release-notes-coordination (C086QAY9UNL)** via `slack_send_message`, as TWO calls so it renders as a real thread:
    a. Send Part 1 standalone (no `thread_ts`); capture the returned `ts`.
    b. Send Part 2 with `thread_ts` = that ts. Leave `reply_broadcast` off.
    c. Read the posted parent + thread back once and eyeball the render (mentions resolved, no runaway code span). The read-back collapses blank lines — don't treat that as a spacing bug. If the body is visibly broken, say so with the permalink; do NOT re-post a second copy.
-3. If the local marker file exists, append the processed RC's Slack ts to `~/.claude/release-watcher/last-processed-rc.txt` (deduped, one per line). Append even if the post failed — but say clearly the post didn't go out.
-4. Make the FIRST LINE of your final message exactly the RC label + nature, e.g. "**RC 06 Jul** — release breakdown posted (threaded)". Then report: the parent permalink, the changelog shell-page URL created/reused, the coverage count (N/N placed), and any unresolved authors/teams or judgment calls.
+4. If the local marker file exists, append the processed RC's Slack ts to `~/.claude/release-watcher/last-processed-rc.txt` (deduped, one per line). Append even if the post failed or was skipped at step 2 — but say clearly which happened.
+5. Make the FIRST LINE of your final message exactly the RC label + nature, e.g. "**RC 06 Jul** — release breakdown posted (threaded)". Then report: the parent permalink, the changelog shell-page URL created/reused, the coverage count (N/N placed), and any unresolved authors/teams or judgment calls.
 
 ## Hard constraints
 
