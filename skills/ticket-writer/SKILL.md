@@ -21,6 +21,24 @@ Detect the mode from the user's input:
 
 ---
 
+## Step 0 — Duplicate scan (run first, before any research or drafting)
+
+Before investing in a spec, check whether the work already exists or is already in flight — **especially in another team**. CS Top Requests are tracked across many teams under shared labels, and the same request often lives in two places. Reference case: CORE-442 ("Separate gate lockout and overlock triggers") was a duplicate of ONB-224 — already built and in QA — caught here before re-speccing.
+
+Run this whenever the user gives an existing issue ID (Refine/Spec) or a Create request with a nameable feature. Skip only for trivial copy/CSS tweaks. It's cheap — a couple of searches — so default to running it, not asking.
+
+1. Pull the key terms — feature nouns, surface, entity (e.g., "gate lockout / overlock", "export tenant notes / activity log").
+2. `list_issues` with `query: "<key terms>"` and **no team filter** — scan the whole workspace, not just Core FMS. Try a couple of phrasings.
+3. Also scan the shared CS labels across teams: `🔝 CS Top Request` (id `0efe4774-742f-4c5c-b7cf-9ea812608863`) and `🙋‍♂️ CS Request` (id `172c3469-3ee4-4920-a829-c21ce3942509`). Filter by label **ID** — names carry emoji prefixes, so plain-text name filters return nothing.
+4. Weight candidates in `started` / `PR Merged` / `completed` states and in other teams (Onboarding/ONB, Product/ENG, Reporting/REPORT…) — those silently make the ticket redundant. `get_issue` any strong candidate and compare scope.
+
+Then:
+- **Already shipped or in flight** → stop. Surface it with a scope mapping (what this ticket asks vs what the other delivers) and recommend marking this one a duplicate via `save_issue duplicateOf` (auto-moves it to the team's Duplicate state) instead of drafting.
+- **Overlapping but not identical** → present the overlap; ask whether to narrow scope, link as related, or proceed.
+- **No real match** → say so in one line and continue.
+
+---
+
 ## Step 1 — Interview
 
 ### Create mode
@@ -117,14 +135,15 @@ Examples:
 
 Use for single-concern, well-scoped issues.
 
-Each outcome is one line. Sub-bullets only for conditionals (`when X → Y`) or default values — never for explanation. If a design reference exists, the ticket complements it — never replicates it. Only specify: field names, validation, conditional logic, defaults, constraints, and behavior not visible in the design.
+Each outcome is one line. Sub-bullets only for conditionals (`when X → Y`) or default values — never for explanation. If a design reference exists, the ticket complements it — never replicates it (see **Logic-only rule for design-linked tickets** below). Only specify: field names, validation, conditional logic, defaults, constraints, and behavior not visible in the design.
 
 ```markdown
 [1-2 sentence intro — what this issue delivers and minimal context.]
 
 ### Design reference
 
-[Figma link/embed/screenshot]
+[Figma link(s) · walkthrough · Supercut]
+The design is the source for layout, copy and states — this spec covers logic only
 
 ### Dependencies
 
@@ -154,14 +173,15 @@ Use for multi-concern issues with frontend + backend + permissions + migrations.
 
 Each group follows the same terse style as the standard format. One line per outcome. Sub-bullets only for conditionals, defaults, or before/after changes. No explanatory prose within outcomes. Inline clarifications use parenthetical — `(only when X)` — not a separate `*Note:*` bullet.
 
-If a design reference exists, the ticket complements it — never replicates it. Only specify: field names, validation, conditional logic, defaults, constraints, and behavior not visible in the design.
+If a design reference exists, the ticket complements it — never replicates it (see **Logic-only rule for design-linked tickets** below). Only specify: field names, validation, conditional logic, defaults, constraints, and behavior not visible in the design.
 
 ```markdown
 [1-2 sentence intro — what this issue delivers and minimal context.]
 
 ### Design reference
 
-[Figma link/embed/screenshot]
+[Figma link(s) · walkthrough · Supercut]
+The design is the source for layout, copy and states — this spec covers logic only
 
 ### Dependencies
 
@@ -224,7 +244,7 @@ Customer context, scope boundaries, and discovery resources are posted as a sepa
 
 ### Optional sections rule
 
-Design reference, Dependencies, Context, and Open questions are only included when they have content. Omit any section that would be empty — never show placeholder text.
+Design reference, Dependencies, Context, and Open questions (for ENG or for design) are only included when they have content. Omit any section that would be empty — never show placeholder text.
 
 ### Before -> after pattern
 
@@ -243,6 +263,17 @@ For long text (sentences, dialog copy, multi-line content), use bold bullet pair
 - **After:** "Confirming the refund will reverse the original transaction."
 
 Only use this when there is a real "before" state. Never use for net-new features where no prior behavior exists.
+
+### Logic-only rule for design-linked tickets
+
+When a Figma/Supercut design exists, the spec owns **logic**; the design owns **layout, copy and states**. Put this line in the Design reference block verbatim: `The design is the source for layout, copy and states — this spec covers logic only`.
+
+- **Keep in the spec:** what is listed and in what order, filters/presets/defaults, what each action does to the underlying state, validation, permission gating, error and empty conditions with their trigger, data rules a mock can't show.
+- **Cut from the spec:** panel/half positions, control inventories (buttons, toggles, fit/expand controls), hover/tooltip contents, highlight and selection visuals, number/date formats, label text, and anything a reused component already does. Litmus test: *would an engineer with the Figma (or the reused component) open learn anything from this line?* If not, cut it.
+- **Reusing an existing component:** name the surface it lives on and say "reused as-is" — one line, never an inventory of its behaviors. Add only the rules that differ in the new context.
+- **Design gaps:** when the design is missing a frame or state the spec depends on, do **not** fill the gap with UI prose. Add a `### Open questions for design` section addressed to the designer by name, one line per missing frame/state — e.g. "**Jan** -> map frame for the dialog's left half, incl. the ZIP pin and the no-coordinates toast state".
+
+Reference cases: **CORE-1260** (Inventory management: Allow Site Managers to add inventory) is the model — design links plus the one-liner, then logic-only bullets. **CORE-1288** (Rental creation: nearby facilities lookup) first narrated the reused competitor map's markers, tooltips and controls; it was cut by a third to logic only after "let's not overexplain".
 
 ---
 
@@ -334,7 +365,7 @@ Preserve all existing metadata (assignee, priority, labels, project). Only updat
 - **Blocking** open questions in the main spec body — if a question blocks work, resolve it before writing the ticket
 - Lengthy problem statements restating what the context already said
 - **Explanatory prose in outcomes** — no "which enables...", "this ensures...", "so that...", "this is because...". The outcome states what; the Context section (if needed) states why.
-- **Design narration** — if a design reference exists, do not describe dialog layouts, panel positions, button placements, or card contents that are visible in the design. Only specify: field names, validation rules, conditional logic, defaults, and technical constraints. The design covers what it looks like; the ticket covers how it behaves.
+- **Design narration** — if a design reference exists, do not describe dialog layouts, panel positions, button placements, control inventories, tooltip contents, highlight visuals or card contents that are visible in the design or in a reused component. Only specify: field names, validation rules, conditional logic, defaults, and technical constraints. The design covers what it looks like; the ticket covers how it behaves (see the logic-only rule in Step 3).
 - Section headers with no content or placeholder text
 - Technical hints about patterns the engineer already knows from their codebase
 - **Internal code symbols** — class/service names, enum constant identifiers, private fields or variables (`WorkflowRunProcessorService`, `currentNodeIndex`, `WorkflowNodeType.SCHEDULE_CALL`). Litmus test: does this name exist only because of *how* eng builds it, not *what* the user observes? Cut it. Real existing entity fields the behavior keys off (`PhoneCall.status = ANSWERED`, `source = WORKFLOW`) stay — that's the observable contract, not the implementation. For workflow-node/action tickets especially, describe the action's observable behavior (what it creates, the fields it exposes, when it skips), never the run-loop mechanics (holds / advances / job-scheduling).
@@ -359,11 +390,12 @@ When writing multiple tickets in one session, draft all tickets before pushing a
 
 ## How to use this skill
 
-1. Ask clarifying questions only if feature behavior is genuinely ambiguous — not about goals, metrics, or audience. Present decisions as options with a recommendation, never open-ended.
-2. Offer optional research (codebase grounding, related in-flight PRs) when it would change the spec — the user decides whether to spend the time.
-3. Run the simplest-scope challenge before drafting anything that adds a new dialog, surface, or data model.
-4. Judge standard vs complex format based on what the issue involves. For complex + new surface, suggest an ENG sync before deep-spec'ing.
-5. Draft the title and description.
-6. Present the draft for review.
-7. On approval, push to Linear via `save_issue`.
-8. Keep it scannable. Every line earns its place — no fluff.
+1. **Run the Step 0 duplicate scan first** — given an issue ID or a nameable feature, search all teams and the shared CS labels for existing or in-flight work. If it's already built/in flight, stop and recommend marking this one a duplicate instead of speccing.
+2. Ask clarifying questions only if feature behavior is genuinely ambiguous — not about goals, metrics, or audience. Present decisions as options with a recommendation, never open-ended.
+3. Offer optional research (codebase grounding, related in-flight PRs) when it would change the spec — the user decides whether to spend the time.
+4. Run the simplest-scope challenge before drafting anything that adds a new dialog, surface, or data model.
+5. Judge standard vs complex format based on what the issue involves. For complex + new surface, suggest an ENG sync before deep-spec'ing.
+6. Draft the title and description. Design-linked ticket -> apply the logic-only rule: design one-liner in the Design reference block, no UI narration, design gaps -> `### Open questions for design`.
+7. Present the draft for review.
+8. On approval, push to Linear via `save_issue`.
+9. Keep it scannable. Every line earns its place — no fluff.
