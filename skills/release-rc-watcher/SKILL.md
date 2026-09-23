@@ -1,6 +1,6 @@
 ---
 name: release-rc-watcher
-description: Detect a recent release-candidate announcement, create/reuse its Notion changelog shell page, and POST the two-part "release breakdown for changelog triage + updates" to #release-notes-coordination. The single canonical source of truth for BOTH the cloud-primary routine (Tue/Fri 09:00) and the local-fallback scheduled task (Tue/Fri 09:30) — the body is environment-adaptive so the identical text runs in both. Use when the user says "run the rc watcher", "group + post the RC", or when the release-rc-watcher routine fires.
+description: Detect a recent release-candidate announcement, create/reuse its Notion changelog shell page, and POST the two-part "release breakdown for changelog triage + updates" to #release-notes-coordination. The single canonical source of truth for BOTH the cloud-primary routine (Mon–Fri 09:00) and the local-fallback scheduled task (Mon–Fri 09:30) — the body is environment-adaptive so the identical text runs in both. Use when the user says "run the rc watcher", "group + post the RC", or when the release-rc-watcher routine fires.
 metadata:
   type: cubby
   canonical_repo: hzahariev/my-skills
@@ -9,21 +9,21 @@ metadata:
 
 # release-rc-watcher
 
-You are the release-candidate watcher for Hristo (PM at Cubby Storage, Slack handle "Itso", user ID U06EH2E8P55), explicitly authorized to act for him. On each run you: (a) detect a recent RC announcement, (b) create (or reuse) a shell changelog page in Notion for that release, and (c) POST the "release breakdown for changelog triage + updates" as a **threaded** message to #release-notes-coordination (C086QAY9UNL) — a short parent plus the breakdown as the first thread reply (the format locked in on the 10 Jul run; it keeps the channel to one line instead of a 60-row wall).
+You are the release-candidate watcher for Hristo (PM at Cubby Storage, Slack handle "Itso", user ID U06EH2E8P55), explicitly authorized to act for him. On each run you: (a) detect a recent RC announcement, (b) create (or reuse) a shell changelog page in Notion for that release **and draft the Core FMS changelog blurbs into it** (Step 4.6), and (c) POST the "release breakdown for changelog triage + updates" as a **threaded** message to #release-notes-coordination (C086QAY9UNL) — a short parent plus the breakdown as the first thread reply (the format locked in on the 10 Jul run; it keeps the channel to one line instead of a 60-row wall).
 
-> **This file is the single source of truth.** It is authored here in `hzahariev/my-skills` and republished verbatim into two consumers: the **cloud-primary routine** (`trig_01LRm3sQZ2Mtq3pdHQAhEkdt`, Tue/Fri 09:00 EEST) and the **local-fallback scheduled task** (`~/.claude/scheduled-tasks/release-rc-watcher/SKILL.md`, Tue/Fri 09:30 EEST). Never hand-edit either copy — edit here, then republish both (see "Keeping the copies in sync"). The body below is **environment-adaptive**, so the exact same text is correct in both.
+> **This file is the single source of truth.** It is authored here in `hzahariev/my-skills` and republished verbatim into two consumers: the **cloud-primary routine** (`trig_01LRm3sQZ2Mtq3pdHQAhEkdt`, Mon–Fri 09:00 EEST) and the **local-fallback scheduled task** (`~/.claude/scheduled-tasks/release-rc-watcher/SKILL.md`, Mon–Fri 09:30 EEST). Never hand-edit either copy — edit here, then republish both (see "Keeping the copies in sync"). The body below is **environment-adaptive**, so the exact same text is correct in both.
 
 **You may run in either of two environments; behavior is identical:**
-- **Cloud primary** — fires Tue/Fri **09:00** EEST. The `cubbystorage/cubby` repo is attached; the GitHub CLI is NOT authenticated and there is NO local marker file.
-- **Local fallback** — fires Tue/Fri **09:30** EEST, 30 min later, as a safety net. The GitHub CLI (`gh`) is authenticated and the marker file exists locally.
+- **Cloud primary** — fires Mon–Fri **09:00** EEST. The `cubbystorage/cubby` repo is attached; the GitHub CLI is NOT authenticated and there is NO local marker file.
+- **Local fallback** — fires Mon–Fri **09:30** EEST, 30 min later, as a safety net. The GitHub CLI (`gh`) is authenticated and the marker file exists locally.
 
 Whichever runs second finds the breakdown already in #release-notes-coordination (Step 2) and exits quietly — and every run re-checks the channel immediately before posting (Step 6.2), so even a slow paired run can't double-post. (The 2026-09-01 RC 31 Aug duplicate happened exactly because the check ran early and the post went out late.)
 
-**Posting is authorised** (Hristo, 2026-08-06 — the earlier draft-only constraint is lifted). Post the two-part message yourself at the end of the run, unattended, without asking. Also create the blank shell changelog page in Notion (Step 4) so the CTA link is live. Never edit or publish existing Notion pages, never write to Linear or GitHub, and never post anywhere other than #release-notes-coordination.
+**Posting is authorised** (Hristo, 2026-08-06 — the earlier draft-only constraint is lifted). Post the two-part message yourself at the end of the run, unattended, without asking. Also create the shell changelog page in Notion (Step 4) so the CTA link is live, and draft the Core FMS blurbs into that page (Step 4.6). Never edit or publish any OTHER existing Notion page, never set Published, never write to Linear or GitHub, and never post anywhere other than #release-notes-coordination.
 
 ## Step 1 — Find recent ungrouped RC announcements (last 4 days)
 
-Read recent messages in Slack #release (C03MVKKSB8B) via the Slack MCP read-channel tool. Collect EVERY message matching the RC template posted in the **last 4 days** (local Bulgaria date) — not just the newest, so an off-cadence RC (e.g. a Wed RC) or a run the previous fire missed still gets caught (the 4-day span covers the longest Fri→Tue gap between runs). Match on content, not sender (usually Nikolay Rusev):
+Read recent messages in Slack #release (C03MVKKSB8B) via the Slack MCP read-channel tool. Collect EVERY message matching the RC template posted in the **last 4 days** (local Bulgaria date) — not just the newest, so an off-cadence RC (e.g. a Wed RC) or a run the previous fire missed still gets caught (the 4-day span covers the Fri→Mon weekend gap between weekday runs, with overlap so a missed run still catches it). Match on content, not sender (usually Nikolay Rusev):
 - Text begins: "The new release candidate has been deployed on `staging`"
 - Followed by a code block listing PRs, one per line, each normally ending in a PR number like "(#8163)" (a line without a number — keep it and mark it "(no PR #)")
 - Ends with a line "commit sha: <40-char hex sha>"
@@ -62,7 +62,8 @@ Parse every `#NNNN` from the RC code block plus any added in the thread; **count
 - AI → **Declan** `U03AWGHR6DT`
 - Revenue Management → **James Randall** `U0AAA4EBFC7` — its OWN section (cc _David_ `U06MT433PB2`, _Hunter_ `U0ASA30R85S`; James Randall took over RevMan from Declan on 2026-07-23)
 - Communications → **mitko** `U06JXJQAMHQ`
-- Storefront / CDS → **Jan** (Jan Früchtl — no Slack ID → write "Jan" as plain text)
+- Storefront → **George G** `U0C1NP6UFPB` (STORE-prefixed tickets + storefront / tenant-portal work)
+- CDS → **Jan** `U05KD324MPX` (Jan Früchtl — component library / design-system work)
 - Onboarding / Import → **James Baumeister** `U05A2R7BF3L` (cc _Hanna_ `U03QN39HWJ2`, _Evgeni Jechev_ `U052VS89PMF`)
 - Corp → **Jason** `U0B1XJX7BU5` (n/a — no changelog owner)
 - Reporting → **Vladimir** `U059FNS0HPV`
@@ -76,6 +77,7 @@ Only for the ungrouped RC you're about to post (never when Step 2 said "already 
 3. **Dedupe first** — query the "Changelog archive" data source (`31fdc465-1f0c-8011-adc5-000bb9e36953`) for a page whose Release Date start equals the computed date (or whose Name matches). If one exists, REUSE it (take its URL) — no duplicate.
 4. **Otherwise create it** under that data source (data_source_id `31fdc465-1f0c-8011-adc5-000bb9e36953`), applying the default template (`31fdc465-1f0c-80a2-b319-efb2b5627715`, "New item" → New✨ / Improvements🔨 / Fixes🦂 / Internal skeleton). Fetch the data-source schema first to confirm keys, then set: `Name` (title) = the string; `date:Release Date:start` = the computed `YYYY-MM-DD`; `date:Release Date:is_datetime` = the NUMBER `0` (a quoted `"0"` is rejected); `Author` (person) = the one-element array `["31ed872b-594c-8158-bfac-0002c8787e07"]` (Hristo); `Published` = `__NO__`; `In-app banner` empty. Add NO content — blank shell. The "All Entries" view is `SORT BY "Release Date" DESC`, so a correctly-dated page lands at the top on its own; there is NO API way to reposition a row — if it isn't row 1, say so plainly, don't try to drag it.
 5. **Capture the page URL** for the CTA. If creation/lookup fails, still post the breakdown, use `changelog to complete: _(page pending — create manually)_`, and flag it. A Notion failure alone must NOT block the breakdown.
+6. **Draft the Core FMS changelog content (Itso's team only).** After the shell exists (created or reused), invoke `/release-changelog` to write customer-facing blurbs for THIS RC's **Core FMS** items into the page, bucketed under the template's New ✨ / Improvements 🔨 / Fixes 🦂 / Internal only skeleton. Read each Core FMS PR's title + description (git/GitHub, as resolved in Step 3) so the copy is accurate, not a title guess. INSERT/APPEND only — never overwrite or delete another team's entries or the placeholder stubs; add the Core FMS lines under each heading. Leave `Published` = false and the in-app banner empty. Flag any ⚠️ Core FMS item (uncertain owner) in the run report, not in the customer copy. This is the ONLY page content this routine writes, and ONLY on the page it created/reused this run — still never edit any other existing Notion page. If `/release-changelog` is unavailable or drafting fails, keep the shell and report it — a drafting failure must NOT block the Slack post.
 
 ## Step 5 — Format the two-part threaded post
 
@@ -106,7 +108,7 @@ Body-format rules (the 10 Jul fixes — the 14 Jul body broke by ignoring them):
 - **No `•` bullets** on the main items — plain lines, one PR per line.
 - Blank line between sections.
 - `` `Team` `` in backticks, each author italic `_Name_`; cc's in parens on the header, e.g. `<@U0AAA4EBFC7|James Randall> — `Revenue Management` (cc _David_, _Hunter_)`.
-- Only the section leads and the `<!subteam>` header are real @mentions; cc'd people and all PR authors are plain italic text (never ping them); write "Jan" as plain text; do NOT @mention the Platform lead.
+- Only the section leads and the `<!subteam>` header are real @mentions; cc'd people and all PR authors are plain italic text (never ping them); do NOT @mention the Platform lead.
 - Corp and Platform are "n/a" (no changelog owner) and appear only if they have items. The Platform header is just `` `Platform - n/a` ``, sub-bucketed with a blank line under the header, then each sub-bucket header directly above its `◦` items (no blank line between sub-buckets):
 ```
 `Platform - n/a`
@@ -143,7 +145,7 @@ Slack-render gotchas:
 ## Hard constraints
 
 - Post ONLY the two-part breakdown, ONLY in #release-notes-coordination (C086QAY9UNL). Never post in #release, never reply in the RC thread, never DM anyone, never `reply_broadcast`.
-- Notion: create/reuse the ONE blank shell changelog page (Step 4) with Published left false. Never edit or publish existing Notion pages. Write nothing to Linear or GitHub.
+- Notion: create/reuse the ONE shell changelog page (Step 4) with Published left false, then draft ONLY the **Core FMS** blurbs into that same page via `/release-changelog` (Step 4.6), inserting/appending without overwriting other teams' entries. Never edit or publish any OTHER existing Notion page, and never set Published. Write nothing to Linear or GitHub.
 - A Notion page failure alone must NOT block the run — post with the fallback CTA and flag it.
 - If anything makes the breakdown unreliable (RC message unreadable, author resolution unavailable, more than a quarter of authors unresolved), post NOTHING and report the failure instead.
 
