@@ -6,6 +6,7 @@ Personal Claude Code skills by Hristo Zahariev.
 
 | Skill | Description |
 |-------|-------------|
+| [api-doc-writer](skills/api-doc-writer/SKILL.md) | Turn a cubby PR that adds/changes Operator API fields or endpoints into a standalone, shareable "advance copy" API doc for an external integrator (SM2), in the "Upcoming Operator API — <feature>" house format — grounded in the PR's external_api.md diff; drafted locally, copy/paste on request, nothing posted without a GO. |
 | [api-spec](skills/api-spec/SKILL.md) | Turn an API enrichment request into a researched, scoped Linear ticket — researches the current API + data model, identifies the gap, drafts the ticket with variable tables, and preps tracker rows. |
 | [cs-requests-triage](skills/cs-requests-triage/SKILL.md) | Batch-groom the CS Request backlog from Linear — fetch, analyze, label, size, and organize tickets with automated triage comments. |
 | [cs-requests-update](skills/cs-requests-update/SKILL.md) | Draft a CS-leadership status update on the 🔝 CS Top Request backlog — pull statuses across teams, group by lifecycle, highlight what moved, and format it as a ready-to-send Slack message. |
