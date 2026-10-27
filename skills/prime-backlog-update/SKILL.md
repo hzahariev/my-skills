@@ -19,7 +19,7 @@ The Linear MCP cannot evaluate the view's project-label filter (`list_issues` wi
 1. `list_projects` with `label`: `Prime Go Live Feedback`, no `team` filter, `fields`: `id, name, teams, status`. Follow `cursor` until complete. Today this is six projects (four Core FMS, one Storefront, one Communications); never hardcode the list — a squad can add a project at any time.
 2. For **each** project: `list_issues` with `project`: the project id, `label`: `9cedd0aa-1a69-49f9-9ecf-b92b993a9b58` (the `PRIME` issue label, filter by ID), `limit`: `100`, `fields`: `id, title, status, statusType, priority, team, assignee, project, parentId, completedAt, canceledAt, updatedAt` — **no descriptions**. Follow `cursor` until complete. Keep sub-issues (the view shows them).
 
-Merge the lists (dedupe by id). For a sizable backlog (40+), **delegate the pull to a subagent** that returns a compact, status-grouped digest so the full list stays out of context. `completedAt` is required for the Shipped delta in Step 3.
+Merge the lists (dedupe by id). Without descriptions the pull is small enough to do inline; only for a very large backlog (80+) **delegate the pull to a subagent** that returns a compact, status-grouped digest. `completedAt` and `canceledAt` are required for Step 3.
 
 Sanity: the view holds roughly 40–60 issues. Fewer than 15 means the pull failed; stop and say so rather than report on a partial set.
 
@@ -38,24 +38,30 @@ Squads name their states differently, so bucket by `statusType` first and by nam
 | 📋 Backlog / triage | `statusType` backlog or triage |
 | 🧹 Closed | `statusType` canceled or duplicate (Cancelled, Won't Fix / Can't repro, Duplicate) |
 
+Any other `unstarted` state a squad uses (e.g. a plain Todo) counts as 🛠️ Committed for dev, so the 📊 counts always reconcile to N.
+
 ---
 
 ## Step 3 — Identify what moved
 
 The update is about **change**, not a full dump. Surface:
-- Issues updated in roughly the **last 7 days** and their current status.
-- Any grooming done recently — re-specs, duplicates merged or closed, items promoted to dev. If the user has context on recent changes, weave it in.
+- Issues whose **status changed** since the cutoff (entered QA/review, became committed, got closed) and their current status.
+- Grooming you can see in the data: duplicates merged or closed, cancellations, items promoted to dev. If the user has context on recent changes, weave it in.
+
+Evidence rule: only `status`, `completedAt` and `canceledAt` count as movement. `updatedAt` alone is **not** evidence — bulk label or project edits touch it — so never infer a re-spec or a promotion from `updatedAt`.
 
 ### 🚢 Shipped is newly-shipped-only (do NOT re-list past shipments)
 
 The `🚢 Shipped` **bullet list** contains **only tickets that reached a completed state _since the previous update_** — never the full set of shipped items (that set only grows and re-announces things the channel already saw).
 
 Compute it from each issue's **`completedAt`**, not from the text of the last Slack post:
-1. Find the **cutoff** — the post time of the most recent prior `Prime backlog — status update` parent message in `#c_prime-storage` (channel `C08RLE6HBQS`). Note its date for the header (`(DD Mon)`). If there is no prior post (first run), use 7 days before today as the cutoff and write the header as `new since DD Mon` with that date.
-2. `🚢 Shipped` bullets = issues in a completed state whose **`completedAt` is after that cutoff**.
+1. Find the **cutoff** — the `ts` of the most recent prior `Prime backlog — status update` parent message in `#c_prime-storage` (channel `C08RLE6HBQS`): `slack_read_channel` with `oldest` = unix timestamp of today − 14 days, `limit` 100, `response_format` concise, matching the parent on that exact title text. Note its date for the header (`(DD Mon)`). If there is no prior post (first run), the cutoff is **00:00 UTC of today − 7 days**; write the header as `new since DD Mon` with that date.
+2. `🚢 Shipped` bullets = issues in a completed state whose **`completedAt` ≥ cutoff** (timestamps are UTC).
 3. If none, keep the section and write `Nothing new shipped since <DD Mon>.` under the header.
 
 This is the one section that is a **delta**, not a census. Everything else (QA/review, committed, scoping, backlog, cleanup) reflects current state.
+
+For each duplicate or cancelled issue closed since the cutoff, call `get_issue` with `includeRelations: true` so the cleanup bullet can name the canonical ticket (`duplicateOf`); if that fails, report the closure without a reason.
 
 ---
 
@@ -91,6 +97,8 @@ Board: https://linear.app/cubbystorage/view/prime-backlog-7e9e48ebdec5
 
 **Format rules**
 - Every bullet **starts with `[TICKET-ID]`**, then a plain-English description, then `— Squad` (Core FMS, Comms, Storefront, …).
+- 🧪 bullets carry the real sub-status in parentheses before the squad: `(built, in QA)` for Merged / PR in Review / In QA, `(in development)` for In Progress — never call an In Progress item built.
+- Keep it short: 🛠️ and ✍️ list **at most 6 bullets each** — items that entered the group since the cutoff first, then by priority — and close a truncated section with `_+N more in Linear_`. 🚢 lists the full delta and 🧪 lists everything (it is short).
 - One ticket per bullet — no `·`-joined multi-item lines.
 - The 📊 snapshot counts must sum to the total N. The `a shipped` count is the **cumulative census** — every issue currently in a completed state — so it is normally **larger** than the number of bullets in `🚢 Shipped` (delta-only per Step 3). That difference is expected; keep the census count so the row still sums to N.
 - Always gloss the "closed" count in plain English.
