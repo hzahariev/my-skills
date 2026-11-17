@@ -1,0 +1,94 @@
+<!doctype html>
+<!--
+  One-slide North Star story, 1920x1080. Fill in the text, copy the two official logo files
+  into ./brand/ (cubby-unit-mark.svg, cubby-logo-full-color.svg), then render with
+  ../scripts/render-story.sh. See ../references/story-slide.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>North Star story</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;600&family=Inter:wght@300;400;500;700&display=swap">
+<style>
+:root {
+  --black: #000000;
+  --white: #FFFFFF;
+  --royal-p1: #1759FC;
+  --royal: #386BFF;
+  --royal-m1: #689AFF;
+  --royal-m2: #B5C4FF;
+  --royal-m3: #DBE0FF;
+  --offblack: #4E4F50;
+  --font-display: "Plus Jakarta Sans", Helvetica, sans-serif;
+  --font-text: "Inter", Helvetica, sans-serif;
+  --radius: 20px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; background: var(--white); }
+.frame { position: relative; width: 1920px; height: 1080px; padding: 64px 120px; display: flex; flex-direction: column; font-family: var(--font-text); color: var(--black); }
+
+.top { display: flex; align-items: center; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid rgba(0,0,0,.12); }
+.top img { height: 30px; width: auto; display: block; }
+.top span { font: 400 24px/1 var(--font-text); color: var(--offblack); }
+
+/* The statement stays on one row. Lower the size before letting it wrap. */
+h1 { font: 600 58px/1.14 var(--font-display); letter-spacing: -0.01em; margin-top: 52px; white-space: nowrap; }
+h1 em { font-style: normal; color: var(--royal); }
+.sub { font: 300 28px/1.5 var(--font-text); color: var(--offblack); margin-top: 26px; white-space: nowrap; }
+
+.cols { display: grid; grid-template-columns: 640px 1fr; gap: 96px; margin-top: 68px; }
+
+.beats { display: flex; flex-direction: column; gap: 36px; padding-top: 52px; }
+.beat { display: flex; gap: 20px; align-items: flex-start; }
+.cube { flex: none; width: 22px; height: 22px; border-radius: 5px; margin-top: 9px; }
+.cube.a { background: var(--royal-p1); }
+.cube.b { background: var(--royal); }
+.cube.c { background: var(--royal-m1); }
+.beat h3 { font: 700 28px/1.4 var(--font-text); text-wrap: balance; }
+.beat p { font: 300 26px/1.45 var(--font-text); color: var(--offblack); margin-top: 6px; text-wrap: balance; }
+
+.eyebrow { font: 600 24px/1.4 var(--font-display); opacity: .5; margin-bottom: 18px; }
+.tiles { display: flex; flex-direction: column; gap: 16px; }
+.tile { background: var(--royal-m3); border-radius: var(--radius); padding: 16px 24px; display: flex; gap: 18px; align-items: center; }
+.num { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--royal); color: var(--white); font: 600 24px/44px var(--font-display); text-align: center; }
+.tile p { font: 400 26px/1.4 var(--font-text); color: var(--black); }
+.base { margin-top: 16px; background: var(--royal); border-radius: var(--radius); padding: 20px 24px; display: flex; gap: 18px; align-items: center; }
+.base .num { background: var(--white); color: var(--royal); }
+.base p { font: 500 26px/1.4 var(--font-text); color: var(--white); }
+
+.foot { position: absolute; left: 120px; right: 120px; bottom: 52px; display: flex; justify-content: space-between; align-items: center; }
+.foot span { font: 300 22px/1 var(--font-text); color: var(--offblack); }
+.foot img { height: 38px; width: auto; display: block; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="top"><img src="brand/cubby-unit-mark.svg" alt="Cubby"><span>AREA · North Star YEAR</span></div>
+
+  <h1><em>KEYWORD</em> rest of the statement, on one row.</h1>
+  <p class="sub">If we make this statement true, we win. It is how we make COMPANY GOAL.</p>
+
+  <div class="cols">
+    <div class="beats">
+      <div class="beat"><span class="cube a"></span><div><h3>Last year we built a lot.</h3><p>The short list of what was built.</p></div></div>
+      <div class="beat"><span class="cube b"></span><div><h3>We learned a lot.</h3><p>The one prerequisite for everything that comes next.</p></div></div>
+      <div class="beat"><span class="cube c"></span><div><h3>The skeptic’s question? The one-word answer.</h3><p>What follows for the customer and for us.</p></div></div>
+    </div>
+
+    <div class="moves">
+      <p class="eyebrow">So, in YEAR</p>
+      <div class="tiles">
+        <div class="tile"><span class="num">1</span><p>Headline of move one.</p></div>
+        <div class="tile"><span class="num">2</span><p>Headline of move two.</p></div>
+        <div class="tile"><span class="num">3</span><p>Headline of move three.</p></div>
+        <div class="tile"><span class="num">4</span><p>Headline of move four.</p></div>
+      </div>
+      <div class="base"><span class="num">5</span><p>While doing the above, the enabling work, stated as the thing.</p></div>
+    </div>
+  </div>
+
+  <div class="foot"><span>© Cubby · MONTH YEAR</span><img src="brand/cubby-logo-full-color.svg" alt="Cubby"></div>
+</div>
+</body>
+</html>

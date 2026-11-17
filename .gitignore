@@ -1,0 +1,3 @@
+# Private, per-machine context for a skill. Never publish.
+**/references/local/
+.DS_Store
