@@ -16,12 +16,17 @@ In reading order:
    - what was built last year, with the short list;
    - what was learned, with the one prerequisite;
    - the skeptic's question and its one-word answer, with the consequence.
-5. **Right column, "So, in <year>".** The headlines as numbered rows, word for word from the
-   page. The last row is the enabling move, drawn as the solid base the others stand on.
+5. **Right column, "So, in <year>".** The "So, in short" lines as numbered rows, word for word
+   from the page. The foundation move is the solid base row, and it sits where it sits on the
+   page: on top when it is move one, at the bottom when it closes the list.
 6. **Footer.** Copyright and date on the left, the logo on the right.
 
 Every line on the slide is a sentence from the page or from what he said. Nothing new is written
 for the slide. Speaker notes, if a deck is built as well, are a talk track in his own words.
+
+Reviewers may not have read the page before the session. The slide is then the whole plan in
+front of them, so the rows have to carry the full conclusion. Check that with him before a
+session: is everything he wants agreed on the slide?
 
 ## Layout rules
 
@@ -35,6 +40,10 @@ for the slide. Speaker notes, if a deck is built as well, are a talk track in hi
   row, neutrals for text.
 - **Sizes that worked on 1920×1080:** title 58px semi-bold, supporting line 28px light, beat
   heads 28px bold, beat sentences 26px light, rows 26px, rounded corners 20px.
+- **Rows scale with their number.** Four rows take 22px of padding and a 20px gap. Five rows
+  need 16px of each.
+- **Mind the line breaks.** A compound such as "two-way" must not split across two lines: use a
+  non-breaking hyphen. Let a row that runs to two lines balance its wrap.
 
 ## Brand
 
@@ -56,9 +65,13 @@ keep the deck's layout cues. Say which came from where.
    (3840×2160).
 5. Save the PNG where he can open it and send it to him. Keep the HTML beside it so the next
    edit is one line.
+6. When the slide replaces an earlier one, first copy the old PNG and HTML to a name with the
+   date and what it showed. He may want to compare, or go back.
+7. The image sits at the top of the page, above the statement. Upload the new one in the same
+   pass as the page change, so the slide and the moves never disagree.
 
-Check on every render: the title stays on one row, no row wraps to a third line, nothing touches
-the footer, and the brand colour appears in exactly one family.
+Check on every render: the title stays on one row, no row wraps to a third line, no word breaks
+at a hyphen, nothing touches the footer, and the brand colour appears in exactly one family.
 
 ## If he wants a deck as well
 
