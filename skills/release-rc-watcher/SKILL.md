@@ -13,8 +13,8 @@ You are the release-candidate watcher for Hristo (PM at Cubby Storage, Slack han
 
 1. **Breakdown** — post the "release breakdown for changelog triage + updates" as a **threaded** message to #release-notes-coordination (C086QAY9UNL): a short parent plus the per-PM breakdown as thread reply(ies).
 2. **Changelog page + drafted items** — create (or reuse) the shell changelog page in Notion for that release, and draft the **material, feature-like** items into it, each line prefixed **`DRAFT - TBC by <PM name>:`**.
-3. **In-app banner draft** — set a draft **In-app banner** on that changelog archive row, prefixed **`DRAFT - TBC:`**.
-4. **DM the PMs** — Slack-DM each team lead who has drafted items, with a link to the new changelog page (and the coordination thread), prompting them to review and finalize their draft items.
+3. **In-app banner draft** — set a draft **In-app banner** on that changelog archive row, prefixed **`DRAFT - TBC - James B & Shenny:`** (James Baumeister + Ivan "Shenny" Shengarov own the banner).
+4. **DM the PMs** — Slack-DM **every changelog-owning team lead** (all PMs, whether or not they have drafted items this RC — in case something was mis-filed), with a link to the new changelog page (and the coordination thread), prompting them to review and finalize their draft items.
 
 Everything stays a **draft**: `Published` is left **false** and the banner/items carry the `DRAFT - TBC` marker. A human (Ivan Shengarov) publishes whatever banner + changelog is ready on release day — that step is NOT this routine's job.
 
@@ -107,7 +107,7 @@ f. **Merge, never overwrite.** Fetch the page's current content FIRST, then INSE
 g. **Scope and failure.** Draft items for every team (each tagged with its PM). Note any ⚠️ (uncertain-owner) item in the run report, not in the customer copy. This and 4.7 are the ONLY Notion page content this routine writes, and ONLY on the page it created/reused this run — never edit any other existing Notion page, never set `Published`. If drafting fails, keep the shell, report it, and carry on — a drafting failure must NOT block the Slack post.
 
 ### 4.7 Draft the in-app banner
-Set the archive row's **`In-app banner`** property to a one-line draft summarising the 2–4 most notable items across teams, prefixed **`DRAFT - TBC: `** (e.g. `DRAFT - TBC: Find rentals missing contact details, send messages to opted-out tenants, and more`). Style it like recent published banners (short, benefit-led). Leave `Published` false. If banner-drafting fails, report it and carry on.
+Set the archive row's **`In-app banner`** property to a one-line draft summarising the 2–4 most notable items across teams, prefixed **`DRAFT - TBC - James B & Shenny: `** — James Baumeister and Ivan "Shenny" Shengarov own the banner, so the tag names them, not the per-item PMs (e.g. `DRAFT - TBC - James B & Shenny: Find rentals missing contact details, send messages to opted-out tenants, and more`). Style it like recent published banners (short, benefit-led). Leave `Published` false. If banner-drafting fails, report it and carry on.
 
 ## Step 5 — Format the two-part threaded post
 
@@ -157,20 +157,20 @@ Omit any empty section/sub-bucket.
 1. **Save** the breakdown to `~/.claude/release-watcher/<RC label>/breakdown.md` (Slack-ready: `=== PARENT MESSAGE ===` + `=== THREAD REPLY ===` blocks, real CTA URL), BEFORE posting, so a failure still leaves the work on disk. (Skip if no writable home.)
 2. **Re-run the Step-2 gate immediately before posting — mandatory.** Time passes between Step 2 and here. Read #release-notes-coordination once more; if a breakdown for this RC appeared since, do NOT post/DM: record the marker (local) and report "RC already handled — raced; nothing posted." The saved breakdown.md stays as the artifact.
 3. **Post the breakdown** to #release-notes-coordination (C086QAY9UNL) via `slack_send_message`, as a real thread: send Part 1 standalone (capture its `ts`); send each Part-2 chunk with `thread_ts` = that ts, `reply_broadcast` off. Read the thread back once and eyeball the render (don't treat collapsed blank lines as a bug). If visibly broken, say so with the permalink; do NOT re-post.
-4. **DM each PM with drafted items.** For each team lead who has ≥1 drafted changelog item (4.6), `slack_send_message` with `channel_id` = that lead's user_id (a DM). Keep it short and point them at their drafts:
+4. **DM every changelog-owning team lead.** For EACH of the eight content leads — Itso (Core FMS), Declan (AI), James Randall (Revenue Management), mitko (Communications), George G (Storefront), Jan (CDS), James Baumeister (Onboarding/Import), Vladimir (Reporting) — send a `slack_send_message` with `channel_id` = that lead's user_id (a DM). DM all of them even if a lead has no drafted items this RC, so a mis-filed item still reaches the right person. Keep it short and point them at their drafts:
 ```
-Changelog drafts for **RC <DD Mon>** are ready for your review — look for lines tagged `DRAFT - TBC by <their name>:`.
+Changelog drafts for **RC <DD Mon>** are ready for your review — look for lines tagged `DRAFT - TBC by <their name>:` (you may have none this release — worth a quick check in case something was filed under another team).
 • Changelog page: <CHANGELOG-PAGE-URL>
 • Breakdown thread: <coordination-thread-permalink>
-Please finalise your items (and the in-app banner if it touches your area) before release day. These are drafts — nothing is published yet.
+Please finalise your items before release day. These are drafts — nothing is published yet.
 ```
-DM only leads with drafted items (skip Platform/Corp "n/a" and any team with no material items). Never `reply_broadcast`, never DM anyone else.
+Do NOT DM the Platform lead (Ivan Anev) or Corp lead (Jason) — both are "n/a", no changelog ownership. Never `reply_broadcast`, never DM anyone outside the eight content leads.
 5. **Marker (local):** append the RC's ts to `~/.claude/release-watcher/last-processed-rc.txt` (deduped). Append even if a step failed or was skipped at 6.2 — but say clearly which happened.
 6. **First line of your final message** = RC label + nature, e.g. "**RC 06 Jul** — breakdown posted (threaded), N items drafted, M PMs DM'd". Then report: parent permalink; changelog page URL; items drafted per team/bucket (or why skipped/excluded); banner draft text; which PMs were DM'd; coverage count (N/N placed); any ⚠️ or judgment calls.
 
 ## Hard constraints
-- Post ONLY the two-part breakdown in #release-notes-coordination (C086QAY9UNL). DM ONLY team leads who have drafted items. Never post in #release, never reply in the RC thread, never `reply_broadcast`, never DM anyone outside the lead list.
-- Notion: create/reuse the ONE shell changelog page, draft **material** items (each `DRAFT - TBC by <PM>:`) and the **banner** (`DRAFT - TBC:`), inserting/appending without overwriting. Leave `Published` false. Never edit or publish any OTHER existing Notion page. Nothing to Linear or GitHub.
+- Post ONLY the two-part breakdown in #release-notes-coordination (C086QAY9UNL). DM the **eight content leads** (never Platform/Corp "n/a"). Never post in #release, never reply in the RC thread, never `reply_broadcast`, never DM anyone outside the eight content leads.
+- Notion: create/reuse the ONE shell changelog page, draft **material** items (each `DRAFT - TBC by <PM>:`) and the **banner** (`DRAFT - TBC - James B & Shenny:`), inserting/appending without overwriting. Leave `Published` false. Never edit or publish any OTHER existing Notion page. Nothing to Linear or GitHub.
 - A Notion failure alone must NOT block the breakdown — post with the fallback CTA and flag it.
 - If anything makes the breakdown unreliable (RC message unreadable, author resolution unavailable, >¼ of authors unresolved), post NOTHING and report the failure instead.
 
